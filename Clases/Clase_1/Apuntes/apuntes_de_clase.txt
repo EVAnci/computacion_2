@@ -1,0 +1,16 @@
+Seguir la estructura pedida del repositorio.
+Cuando hayan interacciones se pide encender la camara.
+Para la materia es importante utilizar linux.
+
+Repo: https://github.com/gquinteroum/compu2_um_2025
+Formulario: https://docs.google.com/forms/d/e/1FAIpQLSd_CuVfzseU70g0OIuGsLn5-hlNY72u8Z08yKLxypdAFsM1hQ/viewform?usp=dialog
+
+Esto? C08J211E6N5
+
+https://console.groq.com/playground
+labs.perplexity.ai
+
+El prompt hay que copiarlo y pegarlo en una ia. Luego hay que crear un archivo en la carpeta resumen pedagojico.
+
+Preguntas:
+
