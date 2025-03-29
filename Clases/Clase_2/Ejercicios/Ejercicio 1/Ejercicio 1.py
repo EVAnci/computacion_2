@@ -1,3 +1,15 @@
+# Consigna
+
+# Ejercicio 1: Crear y gestionar múltiples procesos
+
+# Crea un programa en Python que:
+
+#     Genere tres procesos hijos con fork().
+#     Cada hijo debe imprimir su propio PID y el PID de su padre.
+#     El padre debe esperar a que todos los hijos terminen antes de salir.
+
+# Pista: Usa os.wait() para asegurarte de que el padre no termine antes que los hijos.
+
 import os
 import time
 

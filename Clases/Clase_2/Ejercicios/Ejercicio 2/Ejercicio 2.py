@@ -1,3 +1,15 @@
+# Consigna
+
+# Ejercicio 2: Simulación de carga con procesos
+
+# Crea un programa en Python que:
+
+#     Solicite al usuario un número n (cantidad de procesos a crear).
+#     Cada proceso hijo debe ejecutar una función que realice cálculos pesados (ejemplo: calcular números primos en un rango).
+#     El padre debe esperar a que todos los procesos terminen.
+
+# Pista: Puedes usar os.fork() para crear los procesos y os.waitpid() para esperar a cada uno.
+
 import os, time
 from random import randint
 
