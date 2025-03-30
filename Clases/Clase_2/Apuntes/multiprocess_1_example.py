@@ -17,6 +17,9 @@ if __name__ == "__main__":
     # Iniciar el proceso
     proceso.start()
 
+    time.sleep(0.3)
+    print("Entre start y join se ejecuta el proceso principal!")
+
     # Esperar a que el proceso hijo termine
     proceso.join()
 
