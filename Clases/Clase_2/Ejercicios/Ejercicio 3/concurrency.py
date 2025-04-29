@@ -7,16 +7,16 @@ def auto(nombre, estacionamiento, lock, evento):
     """Simula un auto que intenta estacionar y salir después de un tiempo."""
     
     with lock:
-        print(f"🚗 {nombre} está intentando ingresar. PID: {os.getpid()}")
+        print(f"{nombre} está intentando ingresar. PID: {os.getpid()}")
 
     estacionamiento.acquire()  # Esperar un espacio libre
     with lock:
-        print(f"✅ {nombre} ha ingresado al estacionamiento. Espacios libres: {estacionamiento.get_value()}")
+        print(f"{nombre} ha ingresado al estacionamiento. Espacios libres: {estacionamiento.get_value()}")
     
     time.sleep(random.randint(5,10))  # Simula el tiempo estacionado
     
     with lock:
-        print(f"⛔ {nombre} ha salido del estacionamiento.")
+        print(f"{nombre} ha salido del estacionamiento.")
     estacionamiento.release()  # Liberar espacio
     
     if estacionamiento.get_value() == 3:  # Si el estacionamiento se vacía, activamos el evento
@@ -27,7 +27,7 @@ def monitor(evento, lock):
     while True:
         evento.wait()  # Espera a que el evento se active (cuando el estacionamiento esté vacío)
         with lock:
-            print("🚦 El estacionamiento está completamente vacío. Se pueden ingresar nuevos autos.")
+            print("El estacionamiento está completamente vacío. Se pueden ingresar nuevos autos.")
         evento.clear()  # Resetear el evento para la siguiente detección
 
 if __name__ == "__main__":
