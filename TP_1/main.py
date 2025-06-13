@@ -1,38 +1,36 @@
-from multiprocessing import Process, Pipe, Queue
+from multiprocessing import Process, Pipe, Queue, Value, Condition, Event
 from src.analizador import analizar
 from src.generador import generar
 from src.verificador import verificar
 from args import set_args
 
 if __name__ == "__main__":
-    
     args = set_args()
-    print(f'[+] Modo verboso: {"Activo" if args.verbose else "Inactivo"} - Datos a generar: {args.num} datos.')
-
-    gen_a, frec_pipe = Pipe()
-    gen_b, pres_pipe = Pipe()
-    gen_c, oxig_pipe = Pipe()
-
-    n = args.num
     
-    gen = Process(target=generar, args=(n,gen_a,gen_b,gen_c,args.verbose))
- 
+    print(f'[+] Modo verboso: {"Activo" if args.verbose else "Inactivo"} - Datos a generar: {args.num} datos.')
+    
+    n = args.num
     q = Queue()
+    done_count = Value('i', 0)
+    cond = Condition()
 
-    a = Process(target=analizar, args=('frecuencia',frec_pipe,q,n,args.verbose))
-    b = Process(target=analizar, args=('presion',pres_pipe,q,n,args.verbose))
-    c = Process(target=analizar, args=('oxigeno',oxig_pipe,q,n,args.verbose))
+    pipes = [Pipe(duplex=False) for _ in range(3)]
+    generador_pipes = [p[1] for p in pipes]
+    analizador_pipes = [p[0] for p in pipes]
 
+    gen = Process(target=generar, args=(n,generador_pipes,args.verbose), name='Generador')
+    tipos = ('frecuencia', 'presion', 'oxigeno')
+    proc_analizadores = [
+        Process(target=analizar, args=(tipos[i], analizador_pipes[i], q, n, done_count, cond, 3, args.verbose), name=f"Analizador-{tipos[i]}") for i in range(3)
+    ]
 
     gen.start()
-    a.start()
-    b.start()
-    c.start()
-
+    for p in proc_analizadores:
+        p.start()
+ 
     gen.join()
-    a.join()
-    b.join()
-    c.join()
+    for p in proc_analizadores:
+        p.join()
 
     total_resultados = args.num * 3  # Frecuencia, presión, oxígeno
     verificador = Process(target=verificar ,args=(q,total_resultados))

@@ -71,7 +71,15 @@ def procesar(tipo:str='none',ventana:list=[],verbose:bool=False):
         print(f'\t[{getpid()} - {tipo}] Procesado \t-> {resultado}')
     return resultado
 
-def analizar(tipo:str='none', pipe_to_read:any=None, queue:any=None, n:int=0, verbose:bool=False):
+def analizar(
+        tipo:str='none',
+        pipe_to_read:any=None, 
+        queue:any=None, n:int=0, 
+        done_count:any=None,
+        cond:any=None, 
+        total_procs:int=3, 
+        verbose:bool=False
+    ):
     '''
     Analiza los datos del pipe_to_read y envía los resultados a la queue.
     
@@ -95,3 +103,11 @@ def analizar(tipo:str='none', pipe_to_read:any=None, queue:any=None, n:int=0, ve
         if verbose:
             print(f'\t[{getpid()} - {tipo}] Tamaño de la ventana: {len(ventana)}\n\t[{getpid()} - {tipo}] Escribiendo datos en la cola...')
         queue.put(json.dumps(procesar(tipo=tipo, ventana=ventana,verbose=verbose)))
+        # Incrementar contador
+        with cond:
+            done_count.value += 1
+            if done_count.value == total_procs:
+                done_count.value = 0
+                cond.notify_all()  # Avisar a los demas que todos terminaron
+            else:
+                cond.wait() # Sino esperar a que todos terminen
