@@ -24,10 +24,8 @@ def generar_dato():
 def generar(n,pipe_frec,pipe_press,pipe_ox):
     for _ in range(n):
         dato = generar_dato()
-        print(f'[{getpid()}] Proceso generador escribiendo en el pipe a: {dato}')
         pipe_frec.send(dato)
-        print(f'[{getpid()}] Proceso generador escribiendo en el pipe b: {dato}')
         pipe_press.send(dato)
-        print(f'[{getpid()}] Proceso generador escribiendo en el pipe c: {dato}')
         pipe_ox.send(dato)
+        print(f'[{getpid()}] Proceso generador escribiendo en pipes: {dato}')
         time.sleep(1)

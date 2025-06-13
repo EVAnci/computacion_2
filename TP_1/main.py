@@ -1,5 +1,5 @@
 from multiprocessing import Process, Pipe, Queue
-from src.analizador import Analizador
+from src.analizador import analizar
 from src.generador import generar
 
 if __name__ == "__main__":
@@ -12,14 +12,10 @@ if __name__ == "__main__":
     gen = Process(target=generar, args=(n,gen_a,gen_b,gen_c))
  
     q = Queue()
-    
-    frec_analizer = Analizador('frecuencia',frec_pipe,q)
-    pres_analizer = Analizador('presion',pres_pipe,q)
-    oxig_analizer = Analizador('oxigeno',oxig_pipe,q)
 
-    a = Process(target=frec_analizer.procesar, args=(n,))
-    b = Process(target=pres_analizer.procesar, args=(n,))
-    c = Process(target=oxig_analizer.procesar, args=(n,))
+    a = Process(target=analizar, args=('frecuencia',frec_pipe,q,n))
+    b = Process(target=analizar, args=('presion',pres_pipe,q,n))
+    c = Process(target=analizar, args=('oxigeno',oxig_pipe,q,n))
 
     gen.start()
     a.start()
