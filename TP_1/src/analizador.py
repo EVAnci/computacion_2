@@ -24,7 +24,7 @@ def leer_datos(canal_entrada:any=None, ventana:list=[], ventana_size:int=30):
     if len(ventana) > ventana_size:
         ventana.pop(0)
 
-def procesar(tipo:str='none',ventana:list=[]):
+def procesar(tipo:str='none',ventana:list=[],verbose:bool=False):
     '''
     Procesa los datos de la ventana según el tipo de dato y devuelve un objeto con la media, desviación estándar y timestamp.
     
@@ -67,10 +67,11 @@ def procesar(tipo:str='none',ventana:list=[]):
         'media': med,
         'desv': desv
     }
-    print(f'\t[{getpid()}] Procesado - {tipo} \t->\t{resultado}')
+    if verbose:
+        print(f'\t[{getpid()} - {tipo}] Procesado \t-> {resultado}')
     return resultado
 
-def analizar(tipo:str='none', pipe_to_read:any=None, queue:any=None, n:int=0):
+def analizar(tipo:str='none', pipe_to_read:any=None, queue:any=None, n:int=0, verbose:bool=False):
     '''
     Analiza los datos del pipe_to_read y envía los resultados a la queue.
     
@@ -85,7 +86,12 @@ def analizar(tipo:str='none', pipe_to_read:any=None, queue:any=None, n:int=0):
     n : int
         Número entero que determina cuántas veces se lee del pipe y se envía a la queue.
     '''
+    print(f'[{getpid()} - {tipo}] Proceso analizador iniciado.')
     ventana = []
     for _ in range(n):
+        if verbose:
+            print(f'\t[{getpid()} - {tipo}] Leyendo datos de la tubería...')
         leer_datos(canal_entrada=pipe_to_read, ventana=ventana)
-        queue.put(json.dumps(procesar(tipo=tipo, ventana=ventana)))
+        if verbose:
+            print(f'\t[{getpid()} - {tipo}] Tamaño de la ventana: {len(ventana)}\n\t[{getpid()} - {tipo}] Escribiendo datos en la cola...')
+        queue.put(json.dumps(procesar(tipo=tipo, ventana=ventana,verbose=verbose)))

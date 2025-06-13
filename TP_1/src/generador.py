@@ -21,11 +21,29 @@ def generar_dato():
         "oxigeno": random.randint(90, 100)
     })
 
-def generar(n,pipe_frec,pipe_press,pipe_ox):
-    for _ in range(n):
+def generar(n:int=60,pipe_frec:any=None,pipe_press:any=None,pipe_ox:any=None,verbose:bool=False):
+    '''
+    Genera n datos y los escribe en los pipes pipe_frec, pipe_press y pipe_ox.
+    
+    Parameters
+    ----------
+    n : int
+        Número de datos a generar.
+    pipe_frec : any
+        Extremo de escritura del pipe para la frecuencia.
+    pipe_press : any
+        Extremo de escritura del pipe para la presión.
+    pipe_ox : any
+        Extremo de escritura del pipe para el oxígeno.
+    verbose : bool
+        Imprime en stdout los datos generados si es True.
+    '''
+    print(f'[{getpid()}] Proceso generador iniciado.')
+    for i in range(n):
         dato = generar_dato()
         pipe_frec.send(dato)
         pipe_press.send(dato)
         pipe_ox.send(dato)
-        print(f'[{getpid()}] Proceso generador escribiendo en pipes: {dato}')
+        if verbose:
+            print(f'[{getpid()}] Proceso generador: dato {i} generado; escribiendo en pipes: {dato}')
         time.sleep(1)
