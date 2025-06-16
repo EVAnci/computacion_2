@@ -52,7 +52,6 @@ def alertar(datos:list=[]):
             pres = dato.get('media')
         else:
             ox = dato.get('media')
-    print(frec, pres, ox)
     if frec > 200:
         return True
     elif pres[0] > 200 or pres[1] < 50:
@@ -74,6 +73,7 @@ def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
         Cantidad total de mensajes esperados (n * número de analizadores).
     '''
     prev_hash = "0" * 64  # Hash inicial para el primer bloque
+    print(f'[{getpid()}] Verificador iniciado')
     for _ in range(cantidad_total):
         datos = read_data(queue)
         alert = alertar(datos)

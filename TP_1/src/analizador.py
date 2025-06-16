@@ -1,6 +1,6 @@
 import json
 from time import sleep
-from utils import media, desviacion
+from src.utils import media, desviacion
 from random import randint
 from os import getpid
     

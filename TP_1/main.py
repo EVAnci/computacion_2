@@ -23,19 +23,14 @@ if __name__ == "__main__":
     proc_analizadores = [
         Process(target=analizar, args=(tipos[i], analizador_pipes[i], q, n, done_count, cond, 3, args.verbose), name=f"Analizador-{tipos[i]}") for i in range(3)
     ]
+    verificador = Process(target=verificar ,args=(q,args.num,args.verbose))
 
     gen.start()
     for p in proc_analizadores:
         p.start()
+    verificador.start()
  
     gen.join()
     for p in proc_analizadores:
         p.join()
-
-    total_resultados = args.num  # Frecuencia, presión, oxígeno
-    verificador = Process(target=verificar ,args=(q,total_resultados,args.verbose))
-    verificador.start()
     verificador.join()
-
-    # while not q.empty():
-    #     print(q.get())
