@@ -72,13 +72,20 @@ def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
     cantidad_total : int
         Cantidad total de mensajes esperados (n * número de analizadores).
     '''
-    prev_hash = "0" * 64  # Hash inicial para el primer bloque
     print(f'[{getpid()}] Verificador iniciado')
+    blockchain = []
+    prev_hash = "0" * 64  # Hash inicial para el primer bloque
+    
     for _ in range(cantidad_total):
         datos = read_data(queue)
         alert = alertar(datos)
         bloque = crear_bloque(datos,alert,prev_hash)
+        blockchain.append(bloque)
         prev_hash = bloque.get('hash')  # Encadenar hashes
+        
+        with open("blockchain.json", "w") as f:
+            json.dump(blockchain, f, indent=4)
+        
         if verbose:
             print(f"[{getpid()}] Verificado: {'Alerta' if alert else 'OK'} -> {datos}")
             print(bloque)
