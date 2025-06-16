@@ -1,7 +1,24 @@
 import json
 from os import getpid
+from src.blockchain import crear_bloque
+
 
 def read_data(queue:any=None):
+    """
+    Reads and deserializes data from a queue.
+
+    Parameters
+    ----------
+    queue : any, optional
+        Queue from which data is retrieved. Each item in the queue is 
+        expected to be a serialized JSON string.
+
+    Returns
+    -------
+    list
+        A list containing deserialized JSON objects retrieved from the queue.
+    """
+
     datos = []
     for _ in range(3):
         raw = queue.get()
@@ -10,6 +27,23 @@ def read_data(queue:any=None):
     return datos
 
 def alertar(datos:list=[]):
+    """
+    Analiza los datos de las sensores y devuelve una alarma
+    si se supera alguno de los limites de seguridad.
+
+    Parameters
+    ----------
+    datos : list
+        Lista de diccionarios representando los datos de los sensores.
+        Cada diccionario debe tener al menos las claves 'tipo' y 'media'.
+        'tipo' puede tener valores 'frecuencia', 'presion' o 'oxigeno'.
+        'media' es el valor medio de la magnitud que se esta midiendo.
+
+    Returns
+    -------
+    bool
+        True si se debe emitir una alarma, False en caso contrario.
+    """
     for dato in datos:
         temp = dato.get('tipo')
         if temp == 'frecuencia':
@@ -27,6 +61,7 @@ def alertar(datos:list=[]):
         return True
     return False
 
+
 def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
     '''
     Lee resultados de la Queue, los valida y los muestra.
@@ -38,10 +73,13 @@ def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
     cantidad_total : int
         Cantidad total de mensajes esperados (n * número de analizadores).
     '''
+    prev_hash = "0" * 64  # Hash inicial para el primer bloque
     for _ in range(cantidad_total):
         datos = read_data(queue)
         alert = alertar(datos)
-
+        bloque = crear_bloque(datos,alert,prev_hash)
+        prev_hash = bloque.get('hash')  # Encadenar hashes
         if verbose:
-            print(f"[{getpid()}] Verificado: {'Alerta' if alert else 'OK'} -> {datos}")                  
+            print(f"[{getpid()}] Verificado: {'Alerta' if alert else 'OK'} -> {datos}")
+            print(bloque)
 
