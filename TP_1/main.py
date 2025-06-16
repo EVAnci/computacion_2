@@ -32,8 +32,8 @@ if __name__ == "__main__":
     for p in proc_analizadores:
         p.join()
 
-    total_resultados = args.num * 3  # Frecuencia, presión, oxígeno
-    verificador = Process(target=verificar ,args=(q,total_resultados))
+    total_resultados = args.num  # Frecuencia, presión, oxígeno
+    verificador = Process(target=verificar ,args=(q,total_resultados,args.verbose))
     verificador.start()
     verificador.join()
 

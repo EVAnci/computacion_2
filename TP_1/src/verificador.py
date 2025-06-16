@@ -1,20 +1,33 @@
 import json
 from os import getpid
 
-class Verificador:
-    def __init__(self, queues_entrada):
-        # queues_entrada: dict con claves "frecuencia", "presion", "oxigeno"
-        ...
+def read_data(queue:any=None):
+    datos = []
+    for _ in range(3):
+        raw = queue.get()
+        resultado = json.loads(raw)
+        datos.append(resultado)
+    return datos
 
-    def verificar_y_guardar():
-        # Junta 3 resultados por timestamp, verifica, construye bloque, guarda en JSON
-        ...
+def alertar(datos:list=[]):
+    for dato in datos:
+        temp = dato.get('tipo')
+        if temp == 'frecuencia':
+            frec = dato.get('media')
+        elif temp == 'presion':
+            pres = dato.get('media')
+        else:
+            ox = dato.get('media')
+    print(frec, pres, ox)
+    if frec > 200:
+        return True
+    elif pres[0] > 200 or pres[1] < 50:
+        return True
+    elif ox <= 90 or ox >= 100:
+        return True
+    return False
 
-# src/verificador.py
-
-
-
-def verificar(queue:any=None, cantidad_total:int=0):
+def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
     '''
     Lee resultados de la Queue, los valida y los muestra.
 
@@ -26,13 +39,9 @@ def verificar(queue:any=None, cantidad_total:int=0):
         Cantidad total de mensajes esperados (n * número de analizadores).
     '''
     for _ in range(cantidad_total):
-        raw = queue.get() # El verificador debe saber cuántas veces tiene que hacer queue.get() para leer todos los resultados.
-                          #Si se hacen menos get() de los que hay en la cola se pierden resultados.
-        resultado = json.loads(raw)
-        tipo = resultado.get('tipo')
-        timestamp = resultado.get('timestamp')
-        media = resultado.get('media')
-        desv = resultado.get('desv')
+        datos = read_data(queue)
+        alert = alertar(datos)
 
-        print(f"[{getpid()}] Verificado OK -> {resultado}")                  
+        if verbose:
+            print(f"[{getpid()}] Verificado: {'Alerta' if alert else 'OK'} -> {datos}")                  
 

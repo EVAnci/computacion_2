@@ -16,9 +16,9 @@ def generar_dato():
     # {"timestamp": "2025-06-11T15:32:09", "frecuencia": 122, "presion": [166, 99], "oxigeno": 100}
     return json.dumps({
         "timestamp": datetime.now().isoformat(timespec='seconds'),
-        "frecuencia": random.randint(60, 180),
-        "presion": [random.randint(110, 180), random.randint(70, 110)], # [sistolica, diastolica]
-        "oxigeno": random.randint(90, 100)
+        "frecuencia": random.randint(40, 220),
+        "presion": [random.randint(110, 220), random.randint(40, 110)], # [sistolica, diastolica]
+        "oxigeno": random.randint(80, 100)
     })
 
 def generar(n:int=60,pipes:list=[],verbose:bool=False):

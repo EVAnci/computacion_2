@@ -59,7 +59,7 @@ def procesar(tipo:str='none',ventana:list=[],verbose:bool=False):
     med = media(tipo, datos)
     desv = desviacion(tipo, datos)
     # Simula un calculo costoso (1 a 5 segundos float)
-    sleep(randint(1,500)/100)
+    sleep(randint(1,300)/100)
 
     resultado = {
         'tipo': tipo,
