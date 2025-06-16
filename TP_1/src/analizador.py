@@ -68,7 +68,7 @@ def procesar(tipo:str='none',ventana:list=[],verbose:bool=False):
         'desv': desv
     }
     if verbose:
-        print(f'\t[{getpid()} - {tipo}] Procesado \t-> {resultado}')
+        print(f'[{getpid()} - {tipo}] Procesado:\n\t{resultado}')
     return resultado
 
 def analizar(
@@ -98,10 +98,10 @@ def analizar(
     ventana = []
     for _ in range(n):
         if verbose:
-            print(f'\t[{getpid()} - {tipo}] Leyendo datos de la tubería...')
+            print(f'[{getpid()} - {tipo}] Leyendo datos de la tubería...')
         leer_datos(canal_entrada=pipe_to_read, ventana=ventana)
         if verbose:
-            print(f'\t[{getpid()} - {tipo}] Tamaño de la ventana: {len(ventana)}\n\t[{getpid()} - {tipo}] Escribiendo datos en la cola...')
+            print(f'[{getpid()} - {tipo}] Tamaño de la ventana: {len(ventana)} | Escribiendo datos en la cola...')
         queue.put(json.dumps(procesar(tipo=tipo, ventana=ventana,verbose=verbose)))
         # Incrementar contador
         with cond:

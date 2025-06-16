@@ -18,7 +18,7 @@ def generar_dato():
         "timestamp": datetime.now().isoformat(timespec='seconds'),
         "frecuencia": random.randint(40, 220),
         "presion": [random.randint(110, 220), random.randint(40, 110)], # [sistolica, diastolica]
-        "oxigeno": random.randint(80, 100)
+        "oxigeno": random.randint(89, 100)
     })
 
 def generar(n:int=60,pipes:list=[],verbose:bool=False):
@@ -44,5 +44,5 @@ def generar(n:int=60,pipes:list=[],verbose:bool=False):
         for pipe in pipes:
             pipe.send(dato)
         if verbose:
-            print(f'[{getpid()}] Proceso generador: dato {i} generado; escribiendo en pipes: {dato}')
+            print(f'[{getpid()}] Proceso generador: dato {i+1} generado; escribiendo en pipes: \n\t{dato}')
         time.sleep(1)

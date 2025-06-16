@@ -2,7 +2,6 @@ import json
 from os import getpid
 from src.blockchain import crear_bloque
 
-
 def read_data(queue:any=None):
     """
     Reads and deserializes data from a queue.
@@ -76,7 +75,7 @@ def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
     blockchain = []
     prev_hash = "0" * 64  # Hash inicial para el primer bloque
     
-    for _ in range(cantidad_total):
+    for i in range(cantidad_total):
         datos = read_data(queue)
         alert = alertar(datos)
         bloque = crear_bloque(datos,alert,prev_hash)
@@ -86,7 +85,6 @@ def verificar(queue:any=None, cantidad_total:int=0, verbose:bool=False):
         with open("blockchain.json", "w") as f:
             json.dump(blockchain, f, indent=4)
         
+        print(f'[{getpid()}] Bloque {i+1} verificado\n\tHash: {bloque.get('hash')}\n\tAlerta: {bloque.get('alerta')}')
         if verbose:
-            print(f"[{getpid()}] Verificado: {'Alerta' if alert else 'OK'} -> {datos}")
-            print(bloque)
-
+            print(f"\tDatos: {bloque.get('datos')}")
