@@ -1,4 +1,4 @@
-from multiprocessing import Process, Pipe, Queue, Value, Condition, Event
+from multiprocessing import Process, Pipe, Queue, Value, Condition
 from src.analizador import analizar
 from src.generador import generar
 from src.verificador import verificar
