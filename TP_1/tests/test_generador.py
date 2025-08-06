@@ -1,4 +1,3 @@
-import builtins
 import unittest, json
 from unittest.mock import patch, MagicMock, call
 from src.generador import generar_dato, generar

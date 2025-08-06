@@ -20,6 +20,19 @@ verificar_cadena.py
 ```
 Esta estructura me resultó adecuada ya que es cómoda y modular para separar las responsabilidades de cada proceso.
 
+## Ejecución
+
+Para ejecutar el programa se ha creado una interfaz cli usando argparse. Puede usar el comando:
+
+```sh
+python3 main.py
+```
+
+Y esto tomará los valores por defecto (60 bloques). Para modificar la cantidad de bloques puede usar el parametro `-h` para ver las opciones disponibles.
+```sh
+python3 main.py -h
+```
+
 ### El modelo de procesos e IPC
 
 Respetando la consigna dada, el modelo general de procesos que se obtiene al ejectar el código es el siguiente:
@@ -29,7 +42,7 @@ Respetando la consigna dada, el modelo general de procesos que se obtiene al eje
 - Los procesos analizadores (3 procesos) que se encargan de separar y analizar un dato particular de los datos generados por el proceso generador
 - El proceso verificador que se encarga de juntar los datos procesados por los analizadores y formar una cadena de bloques
 
-Para la creación de procesos he decidido utilizar utilizar la librería `multiprocessing` en vez de `os` ya que facilita la creación de procesos y evita los problemas típicos que pueden suceder con `fork` (como no esperar correctamente que un procesos finalice o no detener correctamente los procesos hijos cuando terminan de ejecutar la función objetivo).
+Para la creación de procesos he decidido utilizar utilizar la librería `multiprocessing` en vez de `os` ya que facilita la creación de procesos y evita los problemas típicos que pueden suceder con `fork` (como no esperar correctamente que un proceso finalice o no detener correctamente los procesos hijos cuando terminan de ejecutar la función objetivo).
 
 #### IPC entre procesos
 
