@@ -1,5 +1,11 @@
 # Sistema Concurrente de Análisis Biométrico con Cadena de Bloques Local
 
+## Alumno:
+
+- Apellido y nombre: Anci, Elio Valentino
+- Carrera: Ingeniería en Computación
+- Legajo: 62197
+
 ## Diseño del proyecto
 
 El diseño general se realizó siguiendo una estructura de archivos y directorios sugerida por ChatGPT:
