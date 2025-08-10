@@ -39,6 +39,15 @@ Y esto tomará los valores por defecto (60 bloques). Para modificar la cantidad 
 python3 main.py -h
 ```
 
+### Ejecución de verificación
+
+Para ejecutar el verificador de blockchain y generador de reporte:
+```py
+python3 verificar_cadena.py
+```
+
+Esto generará el reporte solicitado en la consigna y comprobará si existen bloques corruptos.
+
 ### El modelo de procesos e IPC
 
 Respetando la consigna dada, el modelo general de procesos que se obtiene al ejectar el código es el siguiente:

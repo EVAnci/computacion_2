@@ -26,6 +26,8 @@ def media(tipo:str='', datos:list=[]):
         La media de los datos. Si tipo es 'presion', devuelve una lista con las medias
         de los datos sistólicos y diastólicos.
     '''
+    if len(datos) < 1:
+        return 0
     return float(mean(datos)) if tipo != 'presion' else [float(mean([dato[0] for dato in datos])), float(mean([dato[1] for dato in datos]))]
 
 def desviacion(tipo:str='', datos:list=[]):
@@ -45,4 +47,6 @@ def desviacion(tipo:str='', datos:list=[]):
         La desviación estándar de los datos. Si tipo es 'presion', devuelve una lista con las
         desviaciones estándar de los datos sistólicos y diastólicos.
     '''
+    if len(datos) <= 1: 
+        return 0
     return float(std(datos, ddof=1)) if tipo != 'presion' else [float(std([dato[0] for dato in datos], ddof=1)), float(std([dato[1] for dato in datos], ddof=1))]
