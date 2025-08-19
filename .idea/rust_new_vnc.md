@@ -48,7 +48,7 @@ Tengo un Dummy HDMI conectado al puerto HDMI de la laptop para poder aprovechar 
 Mi idea era intentar sacar el máximo provecho a la conexión thetering con los recursos limitados de los equipos. Actualmente estaba usando este comando:
 
 ```bash
-x11vnc -display :0 -clip 1280x720+1366+0 -nopw  -ncache 0 -speeds 6,120000,1 -wait 20 -defer 20
+x11vnc -display :0 -clip 1024x600+1366+0 -nopw  -ncache 0 -speeds 6,120000,1 -wait 20 -defer 20
 ```
 
 Te explico un poco el por qué de algunos parámetros:
