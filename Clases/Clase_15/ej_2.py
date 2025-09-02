@@ -1,4 +1,5 @@
 import socket
+import time
 
 # Ejecutar desde bash
 # nc -l 127.0.0.1 9001 
@@ -14,13 +15,17 @@ import socket
 def main():
     HOST, PORT = "127.0.0.1", 9001
     # AF_INET = IPv4 (socket de internet IPv4), SOCK_STREAM = TCP (protocolo orientado a conexión)
+    start = time.time()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))                # 3-way handshake TCP
         s.sendall(b"hola mundo\n")             # envío atómico (o en fragmentos internos)
+        end = time.time()
         data = s.recv(4096)                    # bloquea hasta recibir algo o cerrar
         print(f"< {data!r}")
+        print(f'Tiempo {end - start}')
         # Si se recibe más de 4096 bytes, como el socket se cierra (en este caso)
         # la información se pierde
+
 
 if __name__ == "__main__":
     main()
