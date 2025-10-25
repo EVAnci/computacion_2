@@ -1,14 +1,58 @@
 import asyncio
 import aiohttp
+from aiohttp import web
+import logging
+from datetime import datetime
+
+# Use logging is a better way to 'print' logs 
+# while the server is running
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 # This function handles the scraping requests asyncronically
 async def handle_scraping(session, url):
-    async with session.get(url) as response:
-        if response.status == 200:
-            content = await response.read()
-            print(f'{url} content lenght: {len(content)}')
-        else:
-            print('Error al acceder')
+    if not url:
+        return web.json_response(
+            {"status": "error", "message": "Missing parameter: 'url'"},
+            status=400
+        )
+
+    log.info(f"Recibida solicitud de scraping para: {url}")
+
+    try:
+        async with session.get(url) as response:
+            if response.status == 200:
+                content = await response.read()
+                log.info(f'{url} content lenght: {len(content)}')
+            else:
+                return response
+
+        # To debug, mock scraping_data and processing_data
+        scraping_data,processing_data='hello','world'
+    
+        scraped_content = {
+            "url": url,
+            "timestamp": datetime.now().isoformat(),
+            "scraping_data": scraping_data,
+            "processing_data": processing_data,
+            "status": "success"
+        }
+
+        return web.json_response(scraped_content, status=200)
+
+    except asyncio.TimeoutError:
+        log.warning(f"Timeout al procesar {url}")
+        return web.json_response(
+            {"status": "error", "message": "Timeout durante el procesamiento"},
+            status=504
+        )
+    except Exception as e:
+        log.error(f"Error procesando {url}: {e}", exc_info=True)
+        return web.json_response(
+            {"status": "error", "message": str(e)},
+            status=500
+        )
+
 
 # This function creates a server to handle connections.
 # The server must use http protocol. Here urls are
