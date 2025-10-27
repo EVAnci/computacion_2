@@ -65,40 +65,6 @@ def run_full_analysis(url: str) -> dict:
         if driver:
             driver.quit()
 
-def run_full_analysis1(url: str, type: str):
-    """
-    Función que se ejecuta en un proceso separado.
-    Debe ser una función simple, no un método de clase,
-    para que sea fácilmente "picklable".
-    """
-    log.info(f"[PID {os.getpid()}] Iniciando análisis para: {url}")
-    driver = None
-    try:
-        driver = setup_driver()
-        driver.get(url)
-        if type=='screenshot':
-            # 1. Generar Screenshot
-            screenshot_b64 = take_screenshot(url=url, driver=driver)
-            return screenshot_b64
-        elif type=='performance':
-            # 2. Análisis de Rendimiento
-            performance_data = analyze_performance(url=url, driver=driver)
-            return performance_data
-        elif type=='thumbnail':
-            # 3. Análisis de Imágenes
-            thumbnails = generate_thumbnail(driver=driver)
-            return thumbnails
-        else:
-            raise TypeError
-        
-    except Exception as e:
-        log.error(f"[PID {os.getpid()}] Error en análisis de {url}: {e}")
-        return {"status": "error", "message": str(e)}
-
-    finally:
-        if driver:
-            driver.quit()
-
 # ----------------------------------------
 
 class TaskHandler(socketserver.BaseRequestHandler):
@@ -120,40 +86,7 @@ class TaskHandler(socketserver.BaseRequestHandler):
             task_data = json.loads(data.decode('utf-8'))
             log.info(f"Recibida tarea: {task_data}")
 
-            # --- 2. Enviar tarea al Pool de Procesos ---
-            # self.server.process_pool es el ProcessPoolExecutor
             start = datetime.now()
-            # futures = [
-            #     self.server.process_pool.submit(
-            #         run_full_analysis, 
-            #         task_data['url'],
-            #         'screenshot'
-            #     ),
-            #     self.server.process_pool.submit(
-            #         run_full_analysis, 
-            #         task_data['url'],
-            #         'performance'
-            #     ),
-            #     self.server.process_pool.submit(
-            #         run_full_analysis, 
-            #         task_data['url'],
-            #         'thumbnail'
-            #     )
-            # ]
-
-            # tasks_done = []
-            # for future in futures:
-            #     tasks_done.append(future.result())
-            
-            # # Obtenemos el resultado (esto bloquea ESTE HILO, 
-            # # pero no el servidor principal ni otros hilos)
-            # result = {
-            #     "status": "success",
-            #     "screenshot": tasks_done[0],
-            #     "performance": tasks_done[1],
-            #     "thumbnails": tasks_done[2]
-            # } 
-
             # --- 2. Enviar tarea al Pool de Procesos ---
             # self.server.process_pool es el ProcessPoolExecutor
             future = self.server.process_pool.submit(
@@ -168,7 +101,6 @@ class TaskHandler(socketserver.BaseRequestHandler):
             end = datetime.now()
             log.info(f'Tiempo transcurrido para el analisis: {end-start}')
 
-            log.info(f'Analisis terminado para {task_data["url"]}')
             # --- 3. Enviar respuesta ---
             response_data = json.dumps(result).encode('utf-8')
             response_header = len(response_data).to_bytes(4, 'big')

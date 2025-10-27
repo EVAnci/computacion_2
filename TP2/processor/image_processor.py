@@ -1,62 +1,98 @@
 import io
 import base64
 import logging
-import requests # Para descargar las imágenes
-from PIL import Image # Para procesarlas
+import asyncio
+import aiohttp
+from PIL import Image
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
 log = logging.getLogger(__name__)
 
-def generate_thumbnail(driver: WebDriver, max_thumbnails=5, size=(100, 100)):
+# --- Parte Asíncrona (Green Threads) ---
+
+async def fetch_image(session: aiohttp.ClientSession, url: str) -> bytes | None:
     """
-    Encuentra imágenes en la página, las descarga y crea thumbnails.
-    Utiliza un driver de Selenium existente.
+    (Asíncrono) Descarga el contenido de UNA imagen.
+    """
+    try:
+        async with session.get(url, timeout=5) as response:
+            response.raise_for_status()
+            return await response.read()  # Devuelve los bytes crudos
+    except Exception as e:
+        log.warning(f"No se pudo descargar la imagen {url}: {e}")
+        return None
+
+async def download_all_images_async(image_urls: list[str]) -> list[bytes]:
+    """
+    (Asíncrono) Orquesta la descarga de todas las imágenes concurrentemente.
+    """
+    async with aiohttp.ClientSession() as session:
+        # Crea una lista de tareas (coroutines)
+        tasks = [fetch_image(session, url) for url in image_urls]
+        
+        # Ejecuta todas las tareas en paralelo y espera a que terminen
+        results = await asyncio.gather(*tasks)
+        
+        # Filtra los resultados que fallaron (None)
+        return [data for data in results if data]
+
+# --- Parte Síncrona (CPU-Bound) ---
+
+def process_image_data_sync(img_data: bytes, size: tuple) -> str | None:
+    """
+    (Síncrono) Toma bytes de imagen, crea un thumbnail y devuelve Base64.
+    Esta es la parte CPU-bound.
+    """
+    try:
+        with Image.open(io.BytesIO(img_data)) as img:
+            img.thumbnail(size)
+            thumb_io = io.BytesIO()
+            img.save(thumb_io, format="PNG")
+            return base64.b64encode(thumb_io.getvalue()).decode('utf-8')
+    except Exception as e:
+        log.warning(f"No se pudo procesar la imagen (¿formato inválido?): {e}")
+        return None
+
+# --- Función Principal (Puerta de enlace) ---
+
+def generate_thumbnail(driver: WebDriver, max_thumbnails=5, size=(100, 100)) -> list[str]:
+    """
+    (Síncrono) Encuentra imágenes, las descarga concurrentemente y 
+    luego las procesa secuencialmente.
     """
     log.info(f"Iniciando procesamiento de imágenes...")
-    thumbnails = []
     
     try:
-        # 1. Encontrar todos los elementos <img>
+        # --- 1. Obtener URLs (Síncrono, con Selenium) ---
         image_elements = driver.find_elements(By.TAG_NAME, "img")
-        
-        # 2. Obtener sus URLs (src)
         image_urls = []
         for img in image_elements:
             src = img.get_attribute('src')
-            # Filtramos URLs válidas que podamos descargar
             if src and src.startswith('http'):
                 image_urls.append(src)
-                
-        log.info(f"Se encontraron {len(image_urls)} imágenes. Procesando las primeras {max_thumbnails}...")
+        
+        urls_to_fetch = image_urls[:max_thumbnails]
+        log.info(f"Se encontraron {len(image_urls)} imágenes. Procesando {len(urls_to_fetch)}...")
 
-        # 3. Descargar y procesar las primeras 'max_thumbnails'
-        for url in image_urls[:max_thumbnails]:
-            try:
-                # 4. Descargar la imagen
-                # Usamos un timeout corto para no atascarnos en una imagen pesada
-                response = requests.get(url, timeout=5)
-                response.raise_for_status() # Lanza error si es 4xx/5xx
+        if not urls_to_fetch:
+            return []
 
-                # 5. Procesar en memoria con Pillow (PIL)
-                img_data = io.BytesIO(response.content)
-                with Image.open(img_data) as img:
-                    # 'thumbnail' mantiene el aspect ratio, escalando
-                    # a lo más grande que quepa en 'size'
-                    img.thumbnail(size)
-                    
-                    # 6. Guardar el thumbnail en memoria
-                    thumb_io = io.BytesIO()
-                    # Convertimos a PNG para consistencia (GIFs pueden dar problemas)
-                    img.save(thumb_io, format="PNG") 
-                
-                # 7. Codificar en Base64
-                thumb_b64 = base64.b64encode(thumb_io.getvalue()).decode('utf-8')
+        # --- 2. Descargar Imágenes (Asíncrono / Concurrente) ---
+        # Esta es la "puerta": usamos asyncio.run() para ejecutar
+        # nuestra tarea de descarga asíncrona.
+        log.info("Iniciando descarga concurrente de imágenes...")
+        all_image_data = asyncio.run(download_all_images_async(urls_to_fetch))
+        log.info(f"Descarga completada. {len(all_image_data)} imágenes obtenidas.")
+
+        # --- 3. Procesar Imágenes (Síncrono / CPU-Bound) ---
+        # Ahora que tenemos todos los datos, procesamos (CPU-bound)
+        # secuencialmente. Esto está bien, ya no hay esperas de red.
+        thumbnails = []
+        for data in all_image_data:
+            thumb_b64 = process_image_data_sync(data, size)
+            if thumb_b64:
                 thumbnails.append(thumb_b64)
-                
-            except Exception as e:
-                # Si una imagen falla, solo lo logueamos y continuamos
-                log.warning(f"No se pudo procesar la imagen {url}: {e}")
 
         log.info(f"Se generaron {len(thumbnails)} thumbnails.")
         return thumbnails
