@@ -2,6 +2,7 @@ import aiohttp
 from aiohttp import web
 import logging
 import argparse 
+import json
 
 from scraper.async_http import fetch_url
 
@@ -37,7 +38,10 @@ async def handle_scrape_request(request):
 
         # 4. Devolver la respuesta
         status_code = 500 if scraped_content.get("status") == "error" else 200
-        return web.json_response(scraped_content, status=status_code)
+
+        # 5. Mejorar la salida del json 
+        body = json.dumps(scraped_content, ensure_ascii=False, indent=2)
+        return web.Response(text=body, status=status_code)
 
     except Exception as e:
         log.error(f"Error en el manejador principal: {e}", exc_info=True)
@@ -62,6 +66,7 @@ async def on_cleanup(app):
 
 def init_app():
     """Inicializa la aplicación web aiohttp."""
+    # https://docs.aiohttp.org/en/stable/web_quickstart.html
     app = web.Application()
     
     # 1. Definir rutas

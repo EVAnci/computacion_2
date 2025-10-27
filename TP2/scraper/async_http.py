@@ -30,10 +30,14 @@ async def fetch_url(session, url):
             
             # --- Llamada al Servidor B ---
             # processing_data = await request_processing(url)
-            processing_data = await request_processing_from_server_b(('127.0.0.2','8000'),url)
+            task_data = {'url':url}
+            processing_data = await request_processing_from_server_b(
+                    server_b_config=('127.0.0.2','8000'),
+                    task_data=task_data
+                )
 
             # Mockup temporal 
-            # processing_data = {"screenshot": "base64..."}
+            # processing_data = {"screenshot": "base64"}
             
             return {
                 "url": url,

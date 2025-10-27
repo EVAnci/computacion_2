@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 
 def parse_html_content(html_content):
     """Usa BeautifulSoup para extraer datos."""
-    soup = BeautifulSoup(html_content, 'html')
+    soup = BeautifulSoup(html_content, 'html.parser')
     
     # Título
     title = soup.title.string if soup.title else "Sin Título"

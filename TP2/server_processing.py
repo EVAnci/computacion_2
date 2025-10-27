@@ -112,6 +112,7 @@ def main():
     num_processes = args.processes if args.processes else DEFAULT_NUM_PROCESS
     log.info(f"Iniciando ProcessPoolExecutor con {num_processes} workers...")
 
+    # Creamos un pool (por defecto de 4 procesos). Estos procesos
     # Usamos un context manager para asegurar que el pool se cierre
     with ProcessPoolExecutor(max_workers=num_processes) as pool:
         server_address = (args.ip, args.port)
