@@ -6,8 +6,18 @@ log = logging.getLogger(__name__)
 
 async def request_processing_from_server_b(server_b_config, task_data):
     """
-    Se conecta al Servidor B, envía una tarea y recibe una respuesta.
-    Todo de forma asíncrona.
+    Realiza una petición asincrona al Servidor B y devuelve una respuesta.
+
+    Args:
+        server_b_config (tuple): Tuple con la IP y el puerto del Servidor B.
+        task_data (dict): Diccionario con los datos de la tarea.
+
+    Returns:
+        dict: Diccionario con los datos de procesamiento.
+
+    Raises:
+        asyncio.TimeoutError: Si el Servidor B no responde en el timeout especificado.
+        Exception: Si ocurre un error de comunicación con el Servidor B.
     """
     host, port = server_b_config
     try:

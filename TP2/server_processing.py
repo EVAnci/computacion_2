@@ -31,9 +31,21 @@ def setup_driver():
 # Estas funciones se ejecutarán en el ProcessPoolExecutor
 def run_full_analysis(url: str) -> dict:
     """
-    Función que se ejecuta en un proceso separado.
-    Debe ser una función simple, no un método de clase,
-    para que sea fácilmente "picklable".
+    Realiza un análisis completo de una página web.
+
+    Este análisis comprende tres partes:
+    1. Generar un screenshot de la página.
+    2. Analizar el rendimiento de la página (window.performance).
+    3. Generar thumbnails de las imágenes de la página.
+
+    Parámetros:
+    url (str): La URL de la página a analizar.
+
+    Devuelve un diccionario con los siguientes campos:
+    status (str): El estado del análisis ("success" o "error").
+    screenshot (str): El screenshot de la página en formato base64.
+    performance (dict): Los datos de rendimiento de la página (ver analyze_performance).
+    thumbnails (list): Las thumbnails generadas (ver generate_thumbnail).
     """
     log.info(f"[PID {os.getpid()}] Iniciando análisis para: {url}")
     driver = None

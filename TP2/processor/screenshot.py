@@ -6,7 +6,13 @@ log = logging.getLogger(__name__)
 
 def take_screenshot(url:str,driver:WebDriver):
     """
-    Toma un screenshot usando un driver existente 
+    Toma un screenshot de una página web.
+
+    Parámetros:
+    url (str): La URL de la página a tomar el screenshot.
+    driver (WebDriver): El objeto WebDriver que se usará para tomar el screenshot.
+
+    Devuelve un string con el screenshot codificado en base64.
     """
     log.info(f"Tomando screenshot de {url}...")
 

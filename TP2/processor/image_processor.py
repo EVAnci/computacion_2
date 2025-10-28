@@ -13,7 +13,14 @@ log = logging.getLogger(__name__)
 
 async def fetch_image(session: aiohttp.ClientSession, url: str) -> bytes | None:
     """
-    (Asíncrono) Descarga el contenido de UNA imagen.
+    Descarga una imagen en forma asíncrona
+    
+    Args:
+        session (aiohttp.ClientSession): Sesión de aiohttp
+        url (str): URL de la imagen a descargar
+    
+    Returns:
+        bytes | None: Bytes de la imagen descargada o None si falló
     """
     try:
         async with session.get(url, timeout=5) as response:
@@ -25,7 +32,13 @@ async def fetch_image(session: aiohttp.ClientSession, url: str) -> bytes | None:
 
 async def download_all_images_async(image_urls: list[str]) -> list[bytes]:
     """
-    (Asíncrono) Orquesta la descarga de todas las imágenes concurrentemente.
+    Descarga todas las imágenes en forma asíncrona y devuelve una lista de bytes
+
+    Args:
+        image_urls (list[str]): lista de URLs de las imágenes a descargar
+
+    Returns:
+        list[bytes]: lista de bytes de las imágenes descargadas
     """
     async with aiohttp.ClientSession() as session:
         # Crea una lista de tareas (coroutines)
@@ -41,8 +54,15 @@ async def download_all_images_async(image_urls: list[str]) -> list[bytes]:
 
 def process_image_data_sync(img_data: bytes, size: tuple) -> str | None:
     """
-    (Síncrono) Toma bytes de imagen, crea un thumbnail y devuelve Base64.
-    Esta es la parte CPU-bound.
+    Procesa una imagen en formato bytes y devuelve su thumbnail en formato
+    base64.
+
+    Args:
+        img_data (bytes): Bytes de la imagen a procesar
+        size (tuple): Tamaño de la thumbnail (ancho, alto)
+
+    Returns:
+        str | None: Base64 de la thumbnail procesada o None si falló
     """
     try:
         with Image.open(io.BytesIO(img_data)) as img:
@@ -58,8 +78,15 @@ def process_image_data_sync(img_data: bytes, size: tuple) -> str | None:
 
 def generate_thumbnail(driver: WebDriver, max_thumbnails=5, size=(100, 100)) -> list[str]:
     """
-    (Síncrono) Encuentra imágenes, las descarga concurrentemente y 
-    luego las procesa secuencialmente.
+    Genera thumbnails de imágenes en una página web.
+
+    Args:
+        driver (WebDriver): Instancia de WebDriver para acceder a la página
+        max_thumbnails (int): Número máximo de thumbnails a generar (default: 5)
+        size (tuple): Tamaño de la thumbnail (ancho, alto) (default: (100, 100))
+
+    Returns:
+        list[str]: Lista de thumbnails en formato base64
     """
     log.info(f"Iniciando procesamiento de imágenes...")
     

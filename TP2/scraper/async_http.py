@@ -8,10 +8,17 @@ from common.protocol import request_processing_from_server_b
 
 log = logging.getLogger(__name__)
 
-async def fetch_url(session, url):
+async def fetch_url(session, url, server_b_config=('127.0.0.2','8000')):
     """
-    Esta función contiene la lógica pura de scraping para una url.
-    Es la evolución de tu 'handle_scraping'.
+    (Asíncrono) Realiza una petición HTTP a una URL y devuelve un diccionario con los datos de scraping y procesamiento.
+    
+    Args:
+        session (aiohttp.ClientSession): Sesión de la petición HTTP.
+        url (str): URL a descargar.
+        server_b_config (tuple): Tuple con la IP y el puerto del Servidor B.
+    
+    Returns:
+        dict: Diccionario con los datos de scraping y procesamiento.
     """
     log.info(f"Iniciando scraping de: {url}")
     try:
@@ -29,15 +36,11 @@ async def fetch_url(session, url):
             scraping_data = await scrape_page_data(content)
             
             # --- Llamada al Servidor B ---
-            # processing_data = await request_processing(url)
             task_data = {'url':url}
             processing_data = await request_processing_from_server_b(
-                    server_b_config=('127.0.0.2','8000'),
+                    server_b_config=server_b_config,
                     task_data=task_data
                 )
-
-            # Mockup temporal 
-            # processing_data = {"screenshot": "base64"}
             
             return {
                 "url": url,

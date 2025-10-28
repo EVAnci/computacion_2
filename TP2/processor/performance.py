@@ -6,7 +6,16 @@ log = logging.getLogger(__name__)
 
 def analyze_performance(url:str,driver: WebDriver):
     """
-    Analiza el rendimiento usando un driver existente
+    Analiza el rendimiento de una página web utilizando el objeto window.performance.
+
+    Parámetros:
+    url (str): La URL de la página a analizar.
+    driver (WebDriver): El driver de Selenium para acceder a la página.
+
+    Devuelve un diccionario con los siguientes campos:
+    load_time_ms (int): El tiempo de carga de la página en milisegundos.
+    total_size_kb (float): El tamaño total de los recursos cargados en kilobytes.
+    num_requests (int): El número de solicitudes realizadas para cargar la página.
     """
     log.info(f"Analizando rendimiento de {url}...")
     

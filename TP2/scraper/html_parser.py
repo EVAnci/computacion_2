@@ -4,7 +4,25 @@ import logging
 log = logging.getLogger(__name__)
 
 def parse_html_content(html_content):
-    """Usa BeautifulSoup para extraer datos."""
+    """
+    Analiza el contenido HTML de una página y devuelve información relevante.
+    
+    El contenido HTML se analiza utilizando BeautifulSoup y se extraen los siguientes datos:
+    - Título de la página
+    - Todos los enlaces (links) encontrados
+    - Meta tags relevantes (description, keywords, Open Graph tags)
+    - Estructura básica (cantidad de headers H1-H6)
+    - Cantidad de imágenes en la página
+    
+    La función devuelve un diccionario con la siguiente estructura:
+    {
+        "title": str,
+        "links": List[str],
+        "meta_tags": Dict[str, str],
+        "structure": Dict[str, int],
+        "images_count": int
+    }
+    """
     soup = BeautifulSoup(html_content, 'html.parser')
     
     # Título
@@ -44,6 +62,17 @@ def parse_html_content(html_content):
     }
 
 async def scrape_page_data(content):
-    """Función principal de scraping que llamas desde el handler."""
+    """
+    Analiza el contenido HTML de una página y devuelve información relevante.
+    
+    Esta función utiliza `parse_html_content` para analizar el contenido HTML y devuelve un diccionario con la siguiente estructura:
+    {
+        "title": str,
+        "links": List[str],
+        "meta_tags": Dict[str, str],
+        "structure": Dict[str, int],
+        "images_count": int
+    }
+    """
     data = parse_html_content(content)
     return data

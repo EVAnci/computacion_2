@@ -1,5 +1,5 @@
 import aiohttp
-from aiohttp import web
+from aiohttp import request, web
 import logging
 import argparse 
 import json
@@ -13,9 +13,21 @@ log = logging.getLogger(__name__)
 
 async def handle_scrape_request(request):
     """
-    Este es el manejador de ruta (Handler).
-    aiohttp crea una tarea para esta función cada vez que
-    un cliente hace un POST a /scrape.
+    Manejador de peticiónes de scraping
+
+    Recibe una petición HTTP y devuelve una respuesta JSON con el contenido
+    scrapeado de la URL especificada en el cuerpo de la petición.
+
+    Lógica de ejecución:
+    1. Espera input del cliente (json)
+    2. Obtiene la sesión compartida (ver init_app)
+    3. Obtiene los datos del servidor B (ver init_app)
+    4. Ejecuta la lógica de scraping con la sesión y datos del servidor B
+    5. Devuelve la respuesta con el contenido scrapeado
+    6. Mejora la salida del json con ensure_ascii=False, indent=2
+
+    En caso de error, devuelve una respuesta JSON con el estado de error
+    y el mensaje de error correspondiente.
     """
     try:
         # 1. Esperar input del cliente 
@@ -33,13 +45,17 @@ async def handle_scrape_request(request):
         # 2. Obtener la sesión compartida (ver init_app)
         session = request.app['client_session']
 
-        # 3. Ejecutar la lógica de scraping
-        scraped_content = await fetch_url(session, url)
+        # 3. Obtener datos del servidor B 
+        B_IP = request.app['B_IP']
+        B_PORT = request.app['B_PORT']
 
-        # 4. Devolver la respuesta
+        # 4. Ejecutar la lógica de scraping
+        scraped_content = await fetch_url(session, url, (B_IP,B_PORT))
+
+        # 5. Devolver la respuesta
         status_code = 500 if scraped_content.get("status") == "error" else 200
 
-        # 5. Mejorar la salida del json 
+        # 6. Mejorar la salida del json 
         body = json.dumps(scraped_content, ensure_ascii=False, indent=2)
         return web.Response(text=body, status=status_code)
 
@@ -64,10 +80,14 @@ async def on_cleanup(app):
     log.info("Cerrando sesión de cliente...")
 
 
-def init_app():
+def init_app(b_ip, b_port):
     """Inicializa la aplicación web aiohttp."""
     # https://docs.aiohttp.org/en/stable/web_quickstart.html
     app = web.Application()
+
+    # 0. Definir constantes para que puedan ser accedidas desde el handler
+    app['B_IP'] = b_ip
+    app['B_PORT'] = b_port
     
     # 1. Definir rutas
     # Cualquier petición POST a http://.../scrape será manejada
@@ -84,10 +104,14 @@ def main():
     parser = argparse.ArgumentParser(description="Servidor de Scraping Web Asíncrono")
     parser.add_argument('-i', '--ip', required=True, help="Dirección de escucha (soporta IPv4/IPv6)")
     parser.add_argument('-p', '--port', type=int, required=True, help="Puerto de escucha")
+    parser.add_argument('-b', '--b_ip', required=False, default='127.0.0.2', help='Ruta (IPv4) al servidor B - (procesamiento) | Predeterminado: "127.0.0.2"')
+    parser.add_argument('-d', '--b_port', required=False, default='8000', help='Puerto del servidor B - (procesamiento) | Predeterminado: "8000"')
+    parser.add_argument('-s', '--start_b', type=bool, required=False, default=True , help='Iniciar automaticamente el servidor B | Predeterminado: True')
+
     args = parser.parse_args()
 
-    app = init_app()
-    
+    app = init_app(args.b_ip, args.b_port)
+
     log.info(f"Iniciando servidor en http://{args.ip}:{args.port}")
     
     # Esto inicia el servidor y el event loop
