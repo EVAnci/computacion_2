@@ -52,7 +52,7 @@ El script hará todo su trabajo y guardará los json recibidos en `pages/`. Lueg
 ```
 que decodificará las solo las capturas de panatalla y las guardará en archivos distintos.
 
-> ![NOTE] 
+> [!NOTE] 
 > Estos scripts pueden tener bashismos (no son totalmente fiel al estandard POSIX) así que si quieres probar los scripts recomiendo probarlos usando bash.
 > Las cabeceras del script ya sugieren a la sesión de ejecución que use bash, pero si tienes enlaces simbólicos no puedo garantizar que funcionen.
 
