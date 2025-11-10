@@ -137,24 +137,14 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         super().__init__(server_address, RequestHandlerClass)
         self.process_pool = process_pool
 
-def main():
-    DEFAULT_NUM_PROCESS = 4
-
-    parser = argparse.ArgumentParser(description="Servidor de Procesamiento Distribuido")
-    parser.add_argument('-i', '--ip', required=True, help="Dirección de escucha")
-    parser.add_argument('-p', '--port', required=True, type=int, help="Puerto de escucha")
-    parser.add_argument('-n', '--processes', type=int, default=DEFAULT_NUM_PROCESS, 
-                        help="Número de procesos en el pool (default: 4)")
-    
-    args = parser.parse_args()
-    
-    num_processes = args.processes if args.processes else DEFAULT_NUM_PROCESS
+def run_server(ip,port,processes=None):
+    num_processes = processes if processes else (os.cpu_count() or 4)
     log.info(f"Iniciando ProcessPoolExecutor con {num_processes} workers...")
 
-    # Creamos un pool (por defecto de 4 procesos). Estos procesos
+    # Creamos un pool (por defecto de CPU_COUNT procesos). Estos procesos
     # Usamos un context manager para asegurar que el pool se cierre
-    with ProcessPoolExecutor(max_workers=num_processes) as pool:
-        server_address = (args.ip, args.port)
+    with ProcessPoolExecutor(max_workers=processes) as pool:
+        server_address = (ip, port)
         
         # Pasamos el pool al constructor de nuestro servidor
         server = ThreadedTCPServer(
@@ -163,7 +153,7 @@ def main():
             process_pool=pool
         )
         
-        log.info(f"Iniciando Servidor B en {args.ip}:{args.port}")
+        log.info(f"Iniciando Servidor B en {ip}:{port}")
         try:
             server.serve_forever()
         except KeyboardInterrupt:
@@ -172,6 +162,22 @@ def main():
             log.info("Cerrando servidor B...")
             server.shutdown()
             server.server_close()
+
+def main():
+    DEFAULT_NUM_PROCESS = os.cpu_count() or 4
+
+    parser = argparse.ArgumentParser(
+        description="Servidor de Procesamiento Distribuido",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter # Muestra los defaults en -h
+        )
+    parser.add_argument('-i', '--ip', required=True, help="Dirección de escucha")
+    parser.add_argument('-p', '--port', required=True, type=int, help="Puerto de escucha")
+    parser.add_argument('-n', '--processes', type=int, default=DEFAULT_NUM_PROCESS, 
+                        help="Número de procesos en el pool (default: CPU COUNT o 4)")
+    
+    args = parser.parse_args()
+
+    run_server(args.ip,args.port,args.processes)
 
 if __name__ == "__main__":
     main()

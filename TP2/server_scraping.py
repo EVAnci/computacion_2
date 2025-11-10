@@ -3,6 +3,7 @@ from aiohttp import request, web
 import logging
 import argparse 
 import json
+from urllib.parse import urlparse
 
 from scraper.async_http import fetch_url
 
@@ -33,6 +34,8 @@ async def handle_scrape_request(request):
         # 1. Esperar input del cliente 
         data = await request.json()
         url = data.get("url")
+        if not url.startswith(('http://', 'https://')):
+            url = f"http://{url}"
 
         if not url:
             return web.json_response(
@@ -57,7 +60,7 @@ async def handle_scrape_request(request):
 
         # 6. Mejorar la salida del json 
         body = json.dumps(scraped_content, ensure_ascii=False, indent=2)
-        return web.Response(text=body, status=status_code)
+        return web.json_response(text=body, status=status_code)
 
     except Exception as e:
         log.error(f"Error en el manejador principal: {e}", exc_info=True)
@@ -81,7 +84,12 @@ async def on_cleanup(app):
 
 
 def init_app(b_ip, b_port):
-    """Inicializa la aplicación web aiohttp."""
+    """
+    Inicializa la aplicación web aiohttp del servidor A.
+
+    Recibe la ip y puerto del servidor B para configurar
+    las direcciones y poder comunicarse con servidor B.
+    """
     # https://docs.aiohttp.org/en/stable/web_quickstart.html
     app = web.Application()
 
@@ -101,12 +109,14 @@ def init_app(b_ip, b_port):
     return app
 
 def main():
-    parser = argparse.ArgumentParser(description="Servidor de Scraping Web Asíncrono")
+    parser = argparse.ArgumentParser(
+        description="Servidor de Scraping Web Asíncrono",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter # Muestra los defaults en -h
+        )
     parser.add_argument('-i', '--ip', required=True, help="Dirección de escucha (soporta IPv4/IPv6)")
     parser.add_argument('-p', '--port', type=int, required=True, help="Puerto de escucha")
     parser.add_argument('-b', '--b_ip', required=False, default='127.0.0.2', help='Ruta (IPv4) al servidor B - (procesamiento) | Predeterminado: "127.0.0.2"')
     parser.add_argument('-d', '--b_port', required=False, default='8000', help='Puerto del servidor B - (procesamiento) | Predeterminado: "8000"')
-    parser.add_argument('-s', '--start_b', type=bool, required=False, default=True , help='Iniciar automaticamente el servidor B | Predeterminado: True')
 
     args = parser.parse_args()
 
@@ -116,6 +126,7 @@ def main():
     
     # Esto inicia el servidor y el event loop
     # y se queda corriendo para siempre (hasta Ctrl+C)
+    # web.run_app escucha en todas las IPs (v4 y v6)
     web.run_app(app, host=args.ip, port=args.port)
 
 if __name__ == '__main__':
