@@ -53,14 +53,14 @@ El script hará todo su trabajo y guardará los json recibidos en `pages/`. Lueg
 que decodificará las solo las capturas de panatalla y las guardará en archivos distintos.
 
 > [!NOTE] 
-> Estos scripts pueden tener bashismos (no son totalmente fiel al estandard POSIX) así que si quieres probar los scripts recomiendo probarlos usando bash.
+> Estos scripts pueden tener bashismos (no son totalmente fiel al estandar POSIX) así que si quieres probar los scripts recomiendo probarlos usando bash.
 > Las cabeceras del script ya sugieren a la sesión de ejecución que use bash, pero si tienes enlaces simbólicos no puedo garantizar que funcionen.
 
 ## Datos sobre el diseño
 
 ### Servidor A
 
-El Servidor A se pedía asíncrono. Entonces utiliza el módulo `asyncio` de python. Esto nos permite manejar las tareas IO/Bound aprobechando mejor el tiempo, ya que estamos usando greentheads para manejar cada solicitud. En este caso la "magia" sucede en la función `scraper/fetch_url` que es asíncrona y por tanto no bloquea el hilo principal de ejecución (que es manejado por el scheduler de asyncio).
+El Servidor A se pedía asíncrono. Entonces utiliza el módulo `asyncio` de python. Esto nos permite manejar las tareas IO/Bound aprovechando mejor el tiempo, ya que estamos usando greentheads para manejar cada solicitud. En este caso la "magia" sucede en la función `scraper/fetch_url` que es asíncrona y por tanto no bloquea el hilo principal de ejecución (que es manejado por el scheduler de asyncio).
 
 ### Servidor B
 
@@ -77,4 +77,4 @@ El módulo `selenium` de python permite lanzar un navegador (y usando la opción
 
 ### El protocolo de comunicación entre servidores
 
-Para el protocolo busqué la simplicidad ante todo lo posible. Utilicé un protocolo por tamaño. Entonces se envían y reciben "chunks" de datos del mismo tamaño.
+Para el protocolo busqué la simplicidad ante todo lo posible. Utilicé un protocolo por tamaño. Entonces se envían y se consumen "chunks" de datos del mismo tamaño.
