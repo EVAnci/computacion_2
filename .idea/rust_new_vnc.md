@@ -1,240 +1,943 @@
 # Idea de proyecto final
 
-En mi computadora portátil (laptop) he estado investigando la forma de poder usar algún dispositivo antiguo como una Tablet que tengo en casa como monitor secundario.
+## Sistema de monitor remoto de baja latencia con actualizaciones diferenciales
 
-A continuación daré detalle sobre lo que tengo y la idea que se me ocurrió.
+Hace tiempo tengo una necesidad concreta: aprovechar una tablet antigua que tengo en casa como monitor secundario para mi laptop.
 
-## Dispositivos
+Actualmente puedo acercarme a ese objetivo utilizando `x11vnc`, un Dummy HDMI y USB tethering entre la laptop y la tablet. Sin embargo, esta solución también me hizo preguntarme si sería posible construir un sistema propio, orientado específicamente a baja latencia y a hardware limitado, y utilizar ese problema como proyecto final de Computación II.
 
-### Laptop 
+La idea ya no es implementar un reemplazo completo de VNC ni desarrollar un codec de video. El objetivo es diseñar un **protocolo de visualización remota** que aproveche que, en un escritorio, gran parte de la pantalla permanece sin cambios entre actualizaciones consecutivas.
 
-Tengo una laptop equipada con 8GB de RAM DDR3. Esta tiene un Intel Celeron N3350 (CPU de 2 núcleos y 2 hilos con GPU integrada). La laptop corre Arch Linux con MATE DE (x11) (a la fecha 18-08-2025).
-
-La laptop tiene una pantalla de aproximadamente 12 pulgadas con una resolución 1366x768 a 60Hz. Para lo que yo hago es una buena resolución, sin embargo muchas veces apreciaría tener un monitor secundario para hacer las cosas más rápido.
-
-Si se preguntan específicamente cuál es mi laptop es un poco complicado. Veamos unas cosas primero. En esta [página](https://www.utiltecnico.com/2021/08/31/todo-sobre-las-netbooks-conectar-igualdad-del-gobierno-argentino/) está listada mi computadora. Lo que sucede es que inicialmente mi laptop era la G7. Sin embargo, realicé algunas modificaciones a esta. Entre las modificaciones que hice, tuve la oportunidad de cambiar de placa base (y por ende procesador). Pasé del Celeron N3060 a un Celeron N3350 (el que tengo actualmente). No es un cambio radical de rendimiento, pero yo lo noté.
-
-Por otro lado también tuve la posibilidad de comprar un stick de 8GB de RAM DDR3 y aumentar la RAM inicial que tenía.
-
-#### ¿Y por qué no te compras un monitor portátil?
-
-Porque eso no es divertido. Prefiero intentar hacer funcionar mis ideas primero. Si fracaso al intentarlo continuaré con mi laptop y monitor simple, ya que un monitor secundario me sale tan caro como una nueva laptop. Y si me dan a elegir, prefiero la nueva laptop.
-
-### Tablet
-
-Marca Lenovo Tab 2 (el modelo es A7-30HC) corriendo una ROM personalizada ResurrectionRemix con Android 6.0 y acceso root. Se puede ver más sobre la tablet [aquí](https://www.devicespecifications.com/en/model/f4e531d1)
-
-> Si alguien tiene el mismo modelo de tablet y quiere la ROM, puedo enviarla. Antes estaba en los foros de XDA, pero ya no está disponible. Solo me envía un correo solicitando la ROM a este [mail](e.anci@alumno.um.edu.ar) y listo.
-
-La tablet es un dispositivo bastante viejo (pero me gusta su pantalla). Está equipada con un procesador Mediatek MT8382 con 1 GB de RAM. Para el que no esté muy en el tema, este procesador Mediatek es muy débil en casi todo. Esta tablet tiene un puerto MicroUSB 2.0.
-
-Y gracias a la ROM personalizada puedo realizar USB-Tethering para tener la velocidad de transferencia de datos más rápida posible entre dispositivos
-
-La pantalla de la tablet tiene estas características:
-* Tipo: IPS LCD 
-* Tamaño: 7.0 pulgadas
-* Resolución: 600x1024 pixels, 16:9 ratio (~170 ppi density)
-
-#### ¿Por qué me gusta la pantalla de la tablet?
-
-A estándares de hoy es una pantalla mala. Sin embargo, para usarla como pantalla secundaria de PC tiene una densidad de píxeles muy decente. De hecho la densidad de píxeles de la pantalla de la tablet es mayor que la densidad de píxeles de la laptop!
-
-### Adicional
-
-Tengo un Dummy HDMI conectado al puerto HDMI de la laptop para poder aprovechar de la aceleración GPU en la pantalla secundaria simulada. ¿Qué es un DummyHDMI? Es un dispositivo de hardware que "simula" una pantalla conectada al puerto HDMI de la PC. ¿Por qué es importante esto? Porque permite aprovechar la potencia de la GPU a pleno. Si, ya se que se puede usar x11 para crear monitores virtuales. Sin embargo, bajo las pruebas que he estado haciendo, un Dummy HDMI soluciona algunos problemas "out of the box".
-
-# Premisas de la idea
-
-Mi idea era intentar sacar el máximo provecho a la conexión thetering con los recursos limitados de los equipos. Actualmente estaba usando este comando:
-
-```bash
-x11vnc -display :0 -clip 1024x600+1366+0 -nopw  -ncache 0 -speeds 6,120000,1 -wait 20 -defer 20
-```
-
-Te explico un poco el por qué de algunos parámetros:
-* `-speeds 6,120000,1` fue la velocidad mínima que obtuve usando iperf3. La media fue de 130000. Me pareció prudente poner el valor mínimo ya que no hay tanta diferencia.En `x11vnc` el parámetro speeds espera `rd,bw,lat` (e.g., lectura hardware en MB/s, ancho de banda en KB/s, latencia en ms). Esto es entonces 6MB/s para lectura en hardware (podría probar valores mayores, pero de momento va bien). 120000Kbps es la velocidad de transmisión de datos a través de la red tethering. 1ms es la latencia de la misma conexión de red tethering.
-* `-wait 20 -defer 20` para obtener aproximadamente 50 fps de tasa de refresco.
-* `-clip 1024x600+1366+0` es la resolución que elegí de la pantalla secundaria (busqué que coincida con la de la tablet) y el corrimiento para capturar la zona adecuada.
-
-# Idea
-
-Al investigar más sobre x11vnc me dí cuenta de que varios modelos de IA me sugerían cambiar el MTU. ¿Qué es eso? Bueno, sería bueno dar una explicación detallada, pero no quiero irme del tema principal así que daré una breve pero lo más completa posible.
-
-## Configuración de la Red USB-Tethering
-
-Como ya expliqué, USB-Tethering es una forma de LAN. Es decir, en este caso la Tablet crea una interfaz de red que hace de Router (capa 3) y permite crear un vínculo de Red entre la laptop y la tablet por USB. Esto se usa comúnmente para compartir internet por USB, pero en este caso a mí me importa únicamente la LAN. Esta LAN tiene características similares a una conexión por par trenzado al switch ("cable Ethernet al Router para los amigos"). La única diferencia es que no tendremos velocidades Gigabit o superiores, estamos limitados a la velocidad máxima práctica de la conexión USB 2.0. Si prestaron atención al título de premisas, sabrán que la velocidad en este caso es de aproximadamente ~120Mbps o lo que es lo mismo, casi 15MB/s.
-
-Obviamente haciendo algunas cuentas simples vemos que pasar unas 50 imágenes (jpeg digamos en este caso) en 1 segundo con un ancho de banda máximo de 15MB/s es todo un reto, sin embargo veamos algunas cosas que hace x11vnc.
-
-### Datos sobre `x11vnc`
-
-Este programa usa una conexión tipo TCP para mostrarnos el monitor "secundario". En este caso el monitor secundario sería la tablet. El protocolo TCP es un protocolo orientado a conexión que ocupa varios bits en la trama total. A estos bits que usa TCP se les llama cabecera (también overhead). Y aquí está la cuestión.
-
-Partiendo de que TCP realiza controles de la conexión constante, enviando ACKs y colocando bits de control para la entrega en orden, etc... Al final, de los 15MB/s podemos aprobechar una cantidad significativa menos de este ancho de banda. Esto es porque justamente TCP realiza una "sobrecarga" en la cabecera para mantener el control de los datos enviados y recibidos.
-
-Entonces ¿Qué tiene que ver el MTU? El MTU (Maximum Transmission Unit) indica a los equipos conectados a la red el tamaño máximo de la trama. Si se pudiese incremetar el MTU de cada paquete, entonces, la proporción "sobrecarga TCP/datos del paquete" disminuye significativamente. No porque disminuyan los datos de la cabecera TCP, sinó porque incrementamos los datos enviados. Esto suele causar jumbo-frames (o tramas muy grandes en español). Eso no es necesariamente un problema, sobre todo en nuestro caso que preferimos aprobechar al máximo el ancho de banda que tenemos. Pero, por algunas limitaciones de software (o hardware, realmente no se) la tablet no me permite cambiar el tamaño del MTU. 
-
-Esto me llevó a pensar ¿Cómo puedo reducir la sobrecarga de cabecera al máximo posible?
-
-Las respuestas pueden variar, pero lo primero que pensé fue: tal vez se pudiese hacer algo "similar" a lo que hace `x11vnc` pero usando UDP, un protocolo orientado a la no conexión y con cabeceras mucho más pequeñas.
-
-¿Por qué usar UDP? Bueno, veamos algunas pruebas:
-
-```bash
-~ → iperf3 -u -c 192.168.42.129 -b 120M
-Connecting to host 192.168.42.129, port 5201
-[  5] local 192.168.42.147 port 43436 connected to 192.168.42.129 port 5201
-[ ID] Interval           Transfer     Bitrate         Total Datagrams
-[  5]   0.00-1.00   sec  14.3 MBytes   120 Mbits/sec  10361
-[  5]   1.00-2.00   sec  14.3 MBytes   120 Mbits/sec  10359
-[  5]   2.00-3.00   sec  14.3 MBytes   120 Mbits/sec  10369
-[  5]   3.00-4.00   sec  14.3 MBytes   120 Mbits/sec  10359
-[  5]   4.00-5.00   sec  14.3 MBytes   120 Mbits/sec  10359
-[  5]   5.00-6.00   sec  14.3 MBytes   120 Mbits/sec  10349
-[  5]   6.00-7.00   sec  14.3 MBytes   120 Mbits/sec  10359
-[  5]   7.00-8.00   sec  14.3 MBytes   120 Mbits/sec  10368
-[  5]   8.00-9.00   sec  14.3 MBytes   120 Mbits/sec  10350
-[  5]   9.00-10.00  sec  14.3 MBytes   120 Mbits/sec  10359
-- - - - - - - - - - - - - - - - - - - - - - - - -
-[ ID] Interval           Transfer     Bitrate         Jitter    Lost/Total Datagrams
-[  5]   0.00-10.00  sec   143 MBytes   120 Mbits/sec  0.000 ms  0/103592 (0%)  sender
-[  5]   0.00-10.04  sec   143 MBytes   120 Mbits/sec  0.029 ms  0/103589 (0%)  receiver
-```
-Aquí estoy probando la conexión tethering por UDP (Laptop->Tablet). No solo se aprecia que la conexión es súper estable, sino que hay 0% de pérdida de paquetes y latencias menores a 1ms. 
-
-Esto es ideal para, manteniendo el MTU de 1500 (por defecto), aprovechar más ancho de banda abusando de esta conexión. Tristemente `x11vnc` no soporta conexiones UDP y el rendimiento que obtuve en mis pruebas es casi el "mejor posible" con mi hardware.
-
-Algo impresionante es el bajo uso de CPU de x11vnc. Realmente (con mi hardware) es casi imposible notar que x11vnc está corriendo por detrás. No tiene sentido poner una prueba donde el CPU está a 0%~2% porque incluso otros procesos estresan más el CPU que este mismo.
-
-Aquí es donde surge mi idea ¿No es posible hacer algo como `x11vnc` pero abusando de USB-Tethering y el Dummy-HDMI? Es decir, mi idea fue intentar crear algo parecido a `x11vnc` teniendo como prioridad la fluidez de la imagen. Al menos, en mi caso, no me importa tener características de input en la tablet. No es necesario poder usar el touch de la tablet de momento. Mi prioridad es que sea un monitor lo más fluido posible (al menos 30 fps estables). 
-
-# Plan de la idea
-
-Aquí me falta investigar mucho. Realmente hacer algo de esa escala no tiene pinta de ser sencillo. Antes de lanzarme de lleno con el proyecto se me ocurrió intentar lanzar un stream con ffmpeg por UDP a la tablet. Este stream sería a una resolución 1024x600 a 30fps codificado h264. Y luego con VLC intentaría ver un "stream" de la pantalla secundaria (creada por el propio Dummy HDMI) en la tablet. A efectos prácticos sería como tener un monitor. 
-
-Sin embargo, como el propósito de ffmpeg es otro (no ser usado para ver monitores), entonces usa técnicas bastante pesadas comparadas con x11vnc. Es decir, no aplica diff images, codifica imágenes (como un video) y depende de hardware dedicado como VAAPI (de intel) para la codificación por GPU (ya que por CPU es aún más costoso). 
-
-Esto tendría un impacto serio en el rendimiento de mi PC, y no es la idea. Entonces ¿Qué tal crear algún punto medio entre lo que hace ffmpeg para stream y x11vnc para mostrar el escritorio en otro dispositivo.
-
-Lo importante aquí es que ffmpeg permite enviar los datos por UDP, entonces si se pueden comprimir 30 imágenes de 1024x600 para que tengan un tamaño no mayor a 14MB, el stream se verá totalmente fluido (o al menos a 30 fps).
-
-El problema está en cómo podemos "crear" esas 30 imágenes en menos de 1 segundo, comprimirlas y enviarlas todas por UDP sin usar todo el CPU en el intento. 
-
-Lo primero que se me vino a la mente es que debo usar lenguajes de bajo nivel, como Rust. Y aprender mucho sobre cómo puedo comprimir y enviar todo por UDP.
-
-La idea primero sería investigar al respecto. Aquí tengo contenido para comenzar a investigar:
-
-# Respuesta de DeepSeek al proyecto:
+El proyecto se desarrollaría principalmente en Python y tendría como foco la arquitectura concurrente, la comunicación mediante sockets, IPv4/IPv6, procesamiento paralelo, sincronización y diseño de protocolos.
 
 ---
 
-### **1. Ventajas de usar Rust**
-| **Área**         | **Beneficio**                                                                 |
-|-------------------|-------------------------------------------------------------------------------|
-| **Rendimiento**   | Cero-cost abstractions y control de memoria ≈ C/C++ (crítico para latencia)   |
-| **Concurrencia**  | Modelo de ownership evita data races en hilos de captura/compresión/transmisión |
-| **Seguridad**     | Garantía memory-safe (evita corrupción en drivers de bajo nivel)              |
-| **Ecosistema**    | Crates maduros para redes (`tokio`, `async-std`), gráficos (`wgpu`), y USB    |
+# 1. Dispositivos disponibles
+
+## 1.1 Laptop
+
+La laptop cuenta con:
+
+- Intel Celeron N3350.
+- 2 núcleos / 2 hilos.
+- GPU integrada Intel.
+- 8 GB de RAM DDR3.
+- Arch Linux.
+- MATE sobre X11.
+- Pantalla principal de aproximadamente 12 pulgadas, 1366x768 a 60 Hz.
+
+Es un equipo limitado en capacidad de cómputo, por lo que uno de los objetivos del proyecto es evitar una solución que consuma una cantidad excesiva de CPU.
+
+## 1.2 Tablet
+
+La tablet es una Lenovo Tab 2 A7-30HC con:
+
+- MediaTek MT8382.
+- 1 GB de RAM.
+- Android 6 mediante una ROM personalizada.
+- Acceso root.
+- MicroUSB 2.0.
+- Pantalla IPS LCD de 7 pulgadas.
+- Resolución de 600x1024 píxeles.
+
+La tablet puede utilizar USB tethering, lo cual permite crear una interfaz de red entre ambos dispositivos mediante USB.
+
+El dispositivo es antiguo y su capacidad de procesamiento es muy reducida, por lo que el cliente también debería mantenerse relativamente simple.
+
+## 1.3 Dummy HDMI
+
+La laptop tiene conectado un Dummy HDMI.
+
+Este dispositivo simula un monitor conectado físicamente al puerto HDMI. De esta forma X11 dispone de una salida secundaria real sobre la cual pueden ubicarse ventanas y aplicaciones.
+
+Para este proyecto se utilizaría una región aproximada de 1024x600 píxeles correspondiente a esa salida secundaria.
 
 ---
 
-### **2. Componentes Clave del Sistema**
+# 2. Situación actual
+
+Actualmente utilizo `x11vnc` para transmitir la región correspondiente al segundo monitor.
+
+Un comando de referencia es:
+
+```bash
+x11vnc \
+  -display :0 \
+  -clip 1024x600+1366+0 \
+  -nopw \
+  -ncache 0 \
+  -speeds 6,120000,1 \
+  -wait 20 \
+  -defer 20
+```
+
+En pruebas realizadas con `iperf3`, la conexión mediante USB tethering mostró aproximadamente 120 Mbit/s de ancho de banda y una latencia muy baja.
+
+Por ejemplo:
+
+```text
+[ ID] Interval           Transfer     Bitrate       Jitter    Lost/Total Datagrams
+[  5] 0.00-10.00 sec     143 MBytes   120 Mbit/s    0.000 ms  0/103592 (0%) sender
+[  5] 0.00-10.04 sec     143 MBytes   120 Mbit/s    0.029 ms  0/103589 (0%) receiver
+```
+
+Estas condiciones convierten al enlace en un escenario interesante para experimentar con transporte de datos interactivos en tiempo real.
+
+---
+
+# 3. Problema a resolver
+
+Una imagen RGB de 1024x600 ocupa aproximadamente:
+
+```text
+1024 x 600 x 3 bytes = 1 843 200 bytes
+                      ~= 1.84 MB
+```
+
+Transmitir 30 imágenes completas por segundo requeriría aproximadamente:
+
+```text
+1.84 MB x 30 ~= 55 MB/s
+             ~= 442 Mbit/s
+```
+
+Esto supera ampliamente los aproximadamente 120 Mbit/s disponibles.
+
+Sin embargo, un escritorio no se comporta normalmente como un video convencional.
+
+En muchos escenarios solamente cambia una parte reducida de la pantalla:
+
+- el cursor;
+- algunas líneas de una terminal;
+- texto en un editor;
+- una ventana desplazándose;
+- una barra de progreso;
+- un contador;
+- determinadas regiones de una interfaz.
+
+Por lo tanto, en lugar de codificar y transmitir continuamente frames completos, el sistema puede intentar detectar qué regiones cambiaron y transmitir solamente esas regiones.
+
+La pregunta principal del proyecto pasa a ser:
+
+> ¿Es posible construir en Python un sistema de visualización remota suficientemente fluido para hardware limitado utilizando actualizaciones diferenciales, procesamiento concurrente y un protocolo de red diseñado específicamente para priorizar baja latencia?
+
+---
+
+# 4. Por qué utilizar UDP
+
+La motivación original para utilizar UDP era reducir el overhead respecto de TCP. Sin embargo, esta diferencia por sí sola no es suficientemente importante para justificar la arquitectura.
+
+Con un MTU de 1500 bytes, y sin considerar opciones adicionales, una aproximación simple sería:
+
+```text
+IPv4 + TCP:
+1500 - 20 bytes IP - 20 bytes TCP = 1460 bytes de payload
+
+IPv4 + UDP:
+1500 - 20 bytes IP - 8 bytes UDP = 1472 bytes de payload
+```
+
+La diferencia directa de payload es pequeña.
+
+La verdadera ventaja de UDP para este proyecto es otra: **permite que la aplicación decida qué hacer cuando un paquete se pierde o llega tarde**.
+
+En una aplicación interactiva de escritorio, un dato viejo puede dejar de ser útil rápidamente.
+
+Por ejemplo:
+
+```text
+frame 500
+frame 501
+frame 502
+frame 503
+```
+
+Si faltan datos del frame 500 pero ya están disponibles datos del frame 503, puede ser preferible descartar la actualización antigua y continuar con la más reciente.
+
+Una retransmisión tardía puede empeorar la experiencia más que una pérdida visual momentánea.
+
+Por esta razón, UDP se utilizaría como **plano de datos**, donde la prioridad es la baja latencia y es aceptable descartar información obsoleta.
+
+TCP se mantendría para operaciones donde sí interesa confiabilidad y entrega ordenada.
+
+---
+
+# 5. Arquitectura propuesta
+
+La arquitectura utilizaría dos canales diferentes:
+
+```text
+TCP = plano de control
+UDP = plano de datos
+```
+
+## 5.1 Vista general
+
 ```mermaid
 graph LR
-  A[Linux PC] -->|Dummy HDMI| B[GPU]
-  B --> C[Captura DRM/KMS]
-  C --> D[Compresión]
-  D --> E[Transmisión UDP]
-  E --> F[Tablet Android]
-  F --> G[Decodificación & Display]
+    A[Captura X11] --> B[Detector de cambios]
+    B --> C[División en tiles]
+    C --> D[Cola de trabajo]
+    D --> E1[Worker 1]
+    D --> E2[Worker 2]
+    E1 --> F[Cola de salida]
+    E2 --> F
+    F --> G[UDP Sender]
+    G --> H[Red IPv4/IPv6]
+    H --> I[UDP Receiver]
+    I --> J[Reensamblado de tiles]
+    J --> K[Framebuffer local]
+    K --> L[Display]
+
+    M[Servidor TCP de control] <--> N[Cliente TCP de control]
 ```
 
----
+## 5.2 Pipeline del servidor
 
-### **3. Módulos Críticos (y retos)**
-#### **a) Captura de GPU (Linux)**
-- **Tecnología**: DRM/KMS (Direct Rendering Manager/Kernel Mode Setting)
-- **Retos**:
-  - Acceso raw al framebuffer tras el dummy HDMI
-  - Manejo de modos de video (1024x600@60Hz)
-- **Herramientas Rust**: 
-  - Crate `drm-rs` (control directo GPU)
-  - Integración con VAAPI (aceleración hardware)
+```text
+CAPTURE
+   |
+   v
+CHANGE DETECTION
+   |
+   v
+TILING
+   |
+   v
+QUEUE
+   |
+   +------> WORKER 1 -----+
+   +------> WORKER 2 -----+----> OUTPUT QUEUE
+   +------> WORKER N -----+            |
+                                      v
+                                  UDP SENDER
+```
 
-#### **b) Compresión Eficiente**
-- **Requisitos**:
-  - Latencia < 16ms (para 60 FPS)
-  - Bajo CPU (Celeron N3350 es limitado)
-- **Opciones**:
-  - **Delta encoding** (solo cambios de píxeles)
-  - **Tiles dinámicos** (dividir pantalla en zonas activas)
-  - **Crates útiles**: `image-rs`, `rav1e` (AV1), pero cuidado con carga CPU
-
-#### **c) Transporte UDP de Baja Latencia**
-- **Protocolo clave**: 
-  - RUDP (Reliable UDP) con ACKs selectivos
-  - FEC (Forward Error Correction) para paquetes perdidos
-- **Implementación**:
-  - `tokio-udp` + canales asíncronos
-  - QoS priorizando paquetes I-frames
-
-#### **d) Cliente Android**
-- **Arquitectura**:
-  - Rust via Android NDK + capa JNI
-  - SurfaceView nativo para renderizado
-- **Reto mayor**: 
-  - Driver USB personalizado para evitar capas Java (requiere root)
+Cada etapa tiene una responsabilidad específica y permite experimentar con distintas formas de concurrencia.
 
 ---
 
-### **4. Estimación de Complejidad**
-| Componente         | Nivel Dificultad | Tiempo Estimado (experto) |
-|--------------------|------------------|---------------------------|
-| Captura DRM        | Alto             | 2-3 meses                 |
-| Compresión delta   | Medio            | 1-2 meses                 |
-| Stack UDP fiable   | Medio            | 1 mes                     |
-| Cliente Android    | Alto             | 3 meses                   |
-| **Total**          | **Alto**         | **7-9 meses**             |
+# 6. Captura y actualizaciones diferenciales
+
+El servidor capturará únicamente la región correspondiente al segundo monitor.
+
+En una primera implementación se pueden utilizar herramientas de alto nivel como:
+
+- `mss` para captura;
+- NumPy para manipulación y comparación de buffers;
+- OpenCV u otra biblioteca compilada para determinadas operaciones de imagen.
+
+No se pretende realizar bucles píxel por píxel en Python puro.
+
+Por ejemplo, una operación conceptual como:
+
+```python
+changed = current_frame != previous_frame
+```
+
+puede ejecutarse internamente mediante código compilado utilizando arrays de NumPy.
+
+## 6.1 Tiles
+
+La pantalla se dividirá en regiones o **tiles**.
+
+Ejemplo conceptual:
+
+```text
++----+----+----+----+
+|  0 |  1 |  2 |  3 |
++----+----+----+----+
+|  4 |  5 |  6 |  7 |
++----+----+----+----+
+|  8 |  9 | 10 | 11 |
++----+----+----+----+
+```
+
+Entre dos capturas consecutivas solamente se procesarán los tiles modificados.
+
+Será posible experimentar con distintos tamaños de tile para estudiar el compromiso entre:
+
+- costo de detección;
+- cantidad de metadata;
+- eficiencia de compresión;
+- tamaño de los paquetes;
+- latencia.
 
 ---
 
-### **5. Alternativas vs. Implementación Custom**
-| **Enfoque**       | **Latencia** | **Uso CPU** | **Dificultad** |
-|-------------------|--------------|-------------|----------------|
-| Soluciones actuales (Splashtop) | 15-30ms | ~15% | Baja |
-| Rust + delta encoding | 5-10ms | ~8% | Alta |
-| Rust + H.264 hardware | 3-7ms | ~5% | **Muy Alta** |
+# 7. Procesamiento concurrente
+
+El procesamiento de tiles permite introducir un pipeline productor-consumidor.
+
+Una posible arquitectura es:
+
+```text
+capturador
+    |
+    v
+Queue de tiles
+    |
+    +----> proceso worker 1
+    +----> proceso worker 2
+    +----> proceso worker N
+                 |
+                 v
+          Queue de salida
+                 |
+                 v
+             UDP sender
+```
+
+Los workers pueden realizar tareas como:
+
+- compresión;
+- cálculo de checksums;
+- conversión de formato;
+- serialización;
+- fragmentación de payloads grandes.
+
+Se podrán comparar distintas implementaciones:
+
+- ejecución secuencial;
+- `threading`;
+- `ThreadPoolExecutor`;
+- `multiprocessing`;
+- `ProcessPoolExecutor`.
+
+Esto permitiría medir empíricamente qué alternativa funciona mejor para el hardware disponible y analizar la influencia del GIL y de las bibliotecas nativas utilizadas.
+
+No se utilizará Celery en el camino crítico, ya que agregar un broker y una cola de tareas distribuida introduciría una latencia innecesaria para datos cuya vida útil puede ser de apenas algunos milisegundos.
 
 ---
 
-### **6. Consejos para Implementación**
-1. **Fase 1: Prototipo Linux-to-Linux**
-   - Objetivo: Transportar 1024x600 via UDP entre PCs
-   - Usar `drm-rs` + `pixels-rs` para captura
-   - Métrica clave: `latencia < 10ms`
+# 8. Protocolo de datos UDP
 
-2. **Fase 2: Delta Encoding**
-   - Algoritmo simple:
-     ```rust
-     fn encode_frame(prev: &Frame, curr: &Frame) -> Vec<Rect> {
-         // Comparar píxeles y retornar rectángulos modificados
-     }
-     ```
+El protocolo UDP será propio del proyecto.
 
-3. **Fase 3: Android NDK**
-   - Crear `libdisplaybridge.so` en Rust
-   - JNI para `SurfaceView` de Android
+Un datagrama podría incluir conceptualmente:
+
+```text
++----------+----------+----------+----------+----------+---------+
+| version  | frame_id | tile_id  | chunk_id | chunks   | payload |
++----------+----------+----------+----------+----------+---------+
+```
+
+Otros campos posibles son:
+
+- timestamp;
+- tamaño original;
+- tamaño comprimido;
+- codec utilizado;
+- flags;
+- checksum;
+- posición del tile;
+- ancho y alto.
+
+El tamaño máximo del payload deberá elegirse de forma que se evite depender de fragmentación IP.
+
+## 8.1 Fragmentación a nivel de aplicación
+
+Si un tile comprimido supera el tamaño establecido para un datagrama, el propio protocolo lo dividirá:
+
+```text
+tile 27
+
+chunk 0/3
+chunk 1/3
+chunk 2/3
+```
+
+El cliente podrá reconstruir el tile cuando disponga de todos sus fragmentos.
+
+Si alguno no llega dentro de un determinado deadline, la actualización puede descartarse.
 
 ---
 
-### **Conclusión**
-**Sí es realizable**, pero solo si:
-- Tienes experiencia en Rust de sistemas/gráficos
-- Aceptas una curva de aprendizaje empinada (DRM, Android NDK)
-- Es un proyecto de pasión (no esperes ROI rápido)
+# 9. Protocolo de control TCP
 
-**Recomendación pragmática**: 
-1. Usa Splashtop/Spacedesk ya existentes
-2. Si insistes en custom: enfócate solo en el **delta encoding** y usa sockets UNIX locales para evitar redes
+El plano de control utilizará una conexión TCP persistente.
 
-¿Qué tal un MVP que solo transmita regiones de terminal de texto? ¡Reduciría 10x la complejidad! 🚀
+Se utilizará para información donde sí interesa entrega confiable y ordenada.
+
+Ejemplos:
+
+- handshake inicial;
+- versión de protocolo;
+- resolución;
+- FPS objetivo;
+- tamaño de tile;
+- codecs soportados;
+- inicio y finalización de sesión;
+- estadísticas;
+- heartbeat;
+- solicitud de keyframe;
+- notificación de desincronización;
+- apagado ordenado.
+
+Un mensaje inicial podría ser:
+
+```json
+{
+  "type": "HELLO",
+  "protocol": 1,
+  "width": 1024,
+  "height": 600,
+  "target_fps": 30,
+  "pixel_format": "RGB24"
+}
+```
+
+El protocolo deberá definir explícitamente el framing de los mensajes TCP para manejar correctamente lecturas parciales.
+
+---
+
+# 10. Keyframes y resincronización
+
+Las actualizaciones diferenciales tienen un problema: si se pierde una actualización importante, servidor y cliente pueden quedar con estados visuales diferentes.
+
+Por este motivo se utilizarán **keyframes**.
+
+Un keyframe representa un estado completo conocido del framebuffer.
+
+Se podrá generar:
+
+- periódicamente;
+- al iniciar una sesión;
+- cuando el cliente detecta desincronización;
+- cuando la pérdida de paquetes supera un umbral;
+- cuando se modifica una gran proporción de la pantalla.
+
+Ejemplo:
+
+```text
+cliente -> TCP -> REQUEST_KEYFRAME
+servidor -> UDP -> nuevo estado completo
+```
+
+También se puede implementar una recuperación más selectiva solicitando determinados tiles.
+
+El objetivo no es implementar un "TCP sobre UDP", sino agregar solamente los mecanismos de recuperación que tengan sentido para una aplicación visual interactiva.
+
+---
+
+# 11. Política frente a pérdida y datos obsoletos
+
+Cada actualización tendrá asociado un identificador de frame o una generación.
+
+El receptor podrá aplicar una política similar a:
+
+```text
+si llega una actualización demasiado vieja:
+    descartar
+
+si faltan fragmentos y venció su deadline:
+    descartar actualización incompleta
+
+si la inconsistencia acumulada es importante:
+    solicitar keyframe
+```
+
+Esta política constituye una parte central del proyecto porque permite priorizar latencia sobre confiabilidad absoluta.
+
+---
+
+# 12. IPv4 e IPv6
+
+El proyecto deberá funcionar tanto con IPv4 como con IPv6.
+
+La resolución de direcciones puede realizarse con `socket.getaddrinfo()` en lugar de asumir un único address family.
+
+Se pretende experimentar explícitamente con:
+
+- `AF_INET`;
+- `AF_INET6`;
+- `getaddrinfo()`;
+- dual-stack;
+- `IPV6_V6ONLY`;
+- direcciones IPv4-mapped IPv6, cuando corresponda.
+
+Ejemplos de ejecución:
+
+```bash
+python displayd.py --host 0.0.0.0 --port 9000
+```
+
+```bash
+python displayd.py --host :: --port 9000
+```
+
+El mismo diseño del protocolo debe ser independiente de si el transporte utiliza IPv4 o IPv6.
+
+---
+
+# 13. `asyncio`
+
+El plano de control es principalmente I/O-bound y puede implementarse utilizando `asyncio`.
+
+Una posible organización es:
+
+```text
+asyncio event loop
+|
++-- servidor TCP de control
++-- tarea de estadísticas
++-- heartbeat
++-- socket UDP
++-- supervisión de sesión
++-- shutdown
+```
+
+El procesamiento pesado de frames no debería ejecutarse directamente dentro del event loop.
+
+En caso de ser necesario, se delegará a workers externos mediante pools de procesos o ejecutores.
+
+Esta separación permite utilizar:
+
+- concurrencia cooperativa para I/O;
+- paralelismo mediante procesos para operaciones CPU-bound.
+
+---
+
+# 14. Daemon y Unix Domain Socket
+
+Como extensión, el servidor puede ejecutarse como un daemon local llamado, por ejemplo, `displayd`.
+
+Además de los sockets de red, podría exponer un Unix Domain Socket:
+
+```text
+/run/user/<uid>/displayd.sock
+```
+
+Un cliente administrativo `displayctl` podría utilizarlo:
+
+```bash
+displayctl status
+displayctl clients
+displayctl stats
+displayctl keyframe
+displayctl stop
+```
+
+Esto permitiría utilizar `AF_UNIX` para IPC local sin mezclar tráfico administrativo con el protocolo de visualización.
+
+Como extensión adicional se podrían consultar las credenciales del proceso remoto mediante `SO_PEERCRED` en sistemas Linux.
+
+---
+
+# 15. Señales y apagado ordenado
+
+El servidor deberá manejar correctamente señales como:
+
+- `SIGINT`;
+- `SIGTERM`.
+
+El cierre debería seguir aproximadamente esta secuencia:
+
+```text
+dejar de capturar
+        |
+        v
+marcar shutdown
+        |
+        v
+cerrar nuevas tareas
+        |
+        v
+vaciar/cerrar queues
+        |
+        v
+finalizar workers
+        |
+        v
+cerrar sockets TCP/UDP
+        |
+        v
+eliminar Unix socket
+        |
+        v
+terminar proceso
+```
+
+La intención es demostrar gestión real del ciclo de vida de procesos y recursos, no solamente instalar handlers de señales de forma artificial.
+
+---
+
+# 16. Adaptación dinámica
+
+Una extensión especialmente interesante es permitir que el servidor ajuste parámetros según las condiciones observadas.
+
+Métricas posibles:
+
+- pérdida de paquetes;
+- latencia;
+- profundidad de las queues;
+- tiempo de captura;
+- tiempo de detección de cambios;
+- tiempo de compresión;
+- bitrate;
+- porcentaje de pantalla modificada;
+- FPS efectivos;
+- frames descartados.
+
+A partir de estas métricas se podrían adaptar parámetros como:
+
+- FPS objetivo;
+- tamaño de tile;
+- nivel de compresión;
+- calidad;
+- intervalo entre keyframes;
+- cantidad de workers.
+
+Ejemplo conceptual:
+
+```text
+condiciones normales:
+    target_fps = 30
+    quality = alta
+
+queue creciendo:
+    reducir calidad
+    descartar trabajos viejos
+
+pérdida elevada:
+    reducir bitrate
+    aumentar frecuencia de keyframes
+```
+
+No es obligatorio implementar todos estos mecanismos para el MVP, pero constituyen una dirección clara para extender el proyecto.
+
+---
+
+# 17. Cliente
+
+## 17.1 Cliente de referencia
+
+El cliente obligatorio del proyecto será inicialmente un receptor reproducible en una computadora convencional.
+
+Por ejemplo:
+
+```text
+Linux sender
+    |
+    | IPv4 / IPv6
+    v
+Linux Python receiver
+```
+
+Esto permitirá desarrollar, probar y demostrar el protocolo sin depender de Android.
+
+El receiver tendrá como responsabilidades:
+
+- conexión al plano de control;
+- recepción UDP;
+- reensamblado;
+- control de deadlines;
+- reconstrucción del framebuffer;
+- presentación en pantalla;
+- recolección de métricas.
+
+## 17.2 Cliente Android
+
+La tablet Lenovo constituye el objetivo práctico que motivó el proyecto, pero el cliente Android se considerará un **stretch goal**.
+
+Si resulta viable, el sistema final sería:
+
+```text
+Laptop Linux
+    |
+    | USB tethering
+    | IPv4 / IPv6
+    v
+Tablet Android
+```
+
+De esta forma, problemas específicos de Android 6, de la ROM o del empaquetado no bloquean la entrega del proyecto académico.
+
+---
+
+# 18. Métricas y experimentos
+
+El proyecto debería permitir realizar experimentos reproducibles.
+
+## 18.1 Métricas
+
+Se pretende registrar al menos:
+
+- FPS capturados;
+- FPS mostrados;
+- latencia extremo a extremo;
+- Mbit/s transmitidos;
+- porcentaje de CPU;
+- memoria utilizada;
+- tiles detectados;
+- tiles transmitidos;
+- frames descartados;
+- datagramas perdidos;
+- tiempo medio de compresión;
+- profundidad máxima de las queues.
+
+## 18.2 Experimentos posibles
+
+### Cantidad de workers
+
+```text
+1 worker
+2 workers
+4 workers
+```
+
+Comparar:
+
+- throughput;
+- CPU;
+- latencia;
+- FPS.
+
+### Estrategia de ejecución
+
+```text
+secuencial
+vs.
+threads
+vs.
+procesos
+```
+
+### Ancho de banda
+
+Simular diferentes límites:
+
+```text
+20 Mbit/s
+50 Mbit/s
+120 Mbit/s
+```
+
+### Pérdida
+
+```text
+0 %
+1 %
+5 %
+```
+
+### Estrategia de transmisión
+
+```text
+frame completo
+vs.
+tiles diferenciales
+```
+
+Estos experimentos son importantes porque permiten que el proyecto no sea solamente una implementación, sino también un estudio sobre decisiones de concurrencia y transporte.
+
+---
+
+# 19. Alcance del proyecto
+
+## 19.1 MVP obligatorio
+
+El MVP debería incluir:
+
+- captura de la región correspondiente al segundo monitor;
+- almacenamiento del frame anterior;
+- detección de regiones modificadas;
+- división en tiles;
+- pipeline productor-consumidor;
+- uno o más workers;
+- compresión de tiles;
+- protocolo UDP propio;
+- fragmentación/reensamblado a nivel de aplicación;
+- conexión TCP de control;
+- framing correcto sobre TCP;
+- keyframes;
+- política de descarte de actualizaciones obsoletas;
+- IPv4;
+- IPv6;
+- cliente Python de referencia;
+- métricas básicas;
+- apagado ordenado.
+
+## 19.2 Segundo nivel
+
+Una vez funcionando el MVP:
+
+- daemon `displayd`;
+- cliente `displayctl`;
+- Unix Domain Socket;
+- `SO_PEERCRED`;
+- adaptación de FPS/calidad;
+- simulación controlada de pérdida y latencia;
+- selección dinámica del número de workers;
+- recuperación selectiva de tiles.
+
+## 19.3 Stretch goals
+
+Elementos que no deberían condicionar la aprobación del proyecto:
+
+- cliente Android;
+- funcionamiento efectivo de la Lenovo como segundo monitor;
+- captura mediante APIs Linux de más bajo nivel;
+- aceleración por hardware;
+- codecs de video;
+- Forward Error Correction;
+- optimizaciones específicas para el hardware.
+
+---
+
+# 20. Temas de la materia involucrados
+
+El proyecto permite utilizar de forma natural una parte importante de los contenidos de Computación II.
+
+## Procesos y concurrencia
+
+- procesos;
+- threads;
+- CPU-bound vs. I/O-bound;
+- GIL;
+- `multiprocessing`;
+- `concurrent.futures`;
+- worker pools;
+- ciclo de vida de procesos.
+
+## IPC y sincronización
+
+- `Queue`;
+- productor-consumidor;
+- `Event` para shutdown;
+- locks solamente donde exista estado realmente compartido;
+- Unix Domain Sockets como extensión administrativa.
+
+## Redes
+
+- sockets;
+- TCP;
+- UDP;
+- framing;
+- lecturas parciales;
+- timeouts;
+- IPv4;
+- IPv6;
+- `getaddrinfo()`;
+- dual-stack.
+
+## Programación asíncrona
+
+- `asyncio`;
+- event loop;
+- Tasks/Futures;
+- I/O no bloqueante.
+
+## Sistemas Unix
+
+- señales;
+- daemon local;
+- Unix Domain Sockets;
+- administración de recursos y procesos.
+
+El objetivo no es utilizar cada primitiva vista durante la materia, sino elegir aquellas que resuelvan un problema concreto y poder justificar por qué se utilizó cada una.
+
+---
+
+# 21. Diferenciación respecto de un streamer UDP convencional
+
+Existe un riesgo académico importante: un sistema que simplemente haga:
+
+```text
+captura
+  -> JPEG/OpenCV
+  -> chunks UDP
+  -> buffer
+  -> display
+```
+
+sería esencialmente un streamer de imágenes sobre UDP.
+
+Ese no es el objetivo de este proyecto.
+
+La propuesta se diferencia porque estudia un **protocolo de actualización remota de framebuffer**, no solamente transmisión de video.
+
+Los elementos diferenciadores son:
+
+- separación entre plano de control TCP y plano de datos UDP;
+- actualizaciones diferenciales;
+- tiles;
+- datos con tiempo de vida limitado;
+- descarte de información obsoleta;
+- keyframes y resincronización;
+- pipeline concurrente;
+- comparación entre threads y procesos;
+- IPv4/IPv6;
+- daemon y socket Unix opcionales;
+- adaptación en función de métricas.
+
+---
+
+# 22. Qué no pretende ser el proyecto
+
+Para mantener un alcance razonable, el proyecto no pretende:
+
+- reemplazar completamente VNC;
+- competir con soluciones comerciales de escritorio remoto;
+- implementar un codec de video propio;
+- implementar TCP sobre UDP;
+- garantizar entrega de todos los frames;
+- desarrollar inicialmente un stack gráfico Android nativo;
+- superar obligatoriamente el rendimiento de `x11vnc`;
+- conseguir 60 FPS como requisito;
+- utilizar Celery solamente para demostrar su uso.
+
+El objetivo principal es estudiar y construir correctamente una arquitectura concurrente y de red orientada a baja latencia.
+
+---
+
+# 23. Criterios de éxito
+
+El proyecto se consideraría exitoso si permite demostrar que:
+
+1. El servidor puede capturar una región de pantalla y detectar cambios.
+2. Solamente las regiones necesarias pueden transmitirse en condiciones normales.
+3. El pipeline funciona concurrentemente sin crecer indefinidamente en memoria.
+4. Las actualizaciones viejas pueden descartarse sin detener el stream.
+5. El cliente puede recuperarse mediante keyframes.
+6. TCP y UDP tienen responsabilidades claramente distintas.
+7. El sistema funciona sobre IPv4 e IPv6.
+8. Existen métricas que permiten comparar arquitecturas y configuraciones.
+9. El shutdown de procesos, tareas y sockets es limpio.
+10. Las decisiones de diseño pueden justificarse mediante conceptos estudiados en la materia.
+
+Como objetivo práctico adicional, sería ideal conseguir aproximadamente 30 FPS percibidos en escenarios de escritorio normales sobre la conexión USB tethering disponible, aunque esto será una métrica experimental y no una condición absoluta para considerar válido el proyecto.
+
+---
+
+# 24. Resumen
+
+El proyecto propone construir en Python un sistema experimental de visualización remota de escritorio para hardware limitado.
+
+En lugar de tratar la pantalla como una secuencia de frames de video independientes, el sistema la trata como un framebuffer cuyo estado cambia parcialmente con el tiempo.
+
+La arquitectura combina:
+
+```text
+captura
+   +
+actualizaciones diferenciales
+   +
+tiles
+   +
+workers concurrentes
+   +
+UDP para datos de baja latencia
+   +
+TCP para control confiable
+   +
+IPv4 / IPv6
+   +
+keyframes y resincronización
+   +
+métricas y adaptación
+```
+
+El problema surge de una necesidad personal concreta, pero permite experimentar directamente con procesos, concurrencia, IPC, sockets, protocolos, IPv4/IPv6, `asyncio`, `multiprocessing`, `concurrent.futures` y mecanismos de Unix.
+
+La tablet Android continúa siendo el objetivo práctico original, pero el diseño mantiene un cliente Python de referencia para que la viabilidad académica del proyecto no dependa de las dificultades particulares de un dispositivo Android antiguo.
